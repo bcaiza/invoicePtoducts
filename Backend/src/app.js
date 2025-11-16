@@ -11,6 +11,7 @@ import roleRoutes from './routes/roleRoutes.js';
 import customerRoutes from './routes/customerRoute.js';
 import productRoutes from './routes/productRoute.js';
 import invoiceRoutes from './routes/invoiceRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/invoices', invoiceRoutes);
+app.use('/api/auth', authRoutes);
 
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
