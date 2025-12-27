@@ -13,7 +13,9 @@ import {
   Sun, 
   Moon,
   ShieldCheck,
-  Ruler
+  Ruler,
+  Gift,
+  Boxes
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -30,8 +32,8 @@ const Layout = ({ children }) => {
     { path: '/invoices', label: 'Facturas', icon: FileText, module: 'invoices' },
     { path: '/products', label: 'Productos', icon: Package, module: 'products' },
     { path: '/units', label: 'Unidades', icon: Ruler, module: 'units' },
-    { key: 'product-units', icon: Ruler, label: 'Unidades de Producto', path: '/product-units'},
-    { path: '/promotions', label: 'Promociones', icon: Users, module: 'promotion' },
+    { path: '/product-units', label: 'Unidades de Producto', icon: Boxes, module: 'products' },
+    { path: '/promotions', label: 'Promociones', icon: Gift, module: 'promotion' },
     { path: '/customers', label: 'Clientes', icon: Users, module: 'customers' },
     { path: '/users', label: 'Usuarios', icon: UserCircle, module: 'users' },
     { path: '/roles', label: 'Roles', icon: ShieldCheck, module: 'users' },
@@ -46,7 +48,6 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen transition-colors duration-300 bg-slate-50 dark:bg-dark-950">
-      {/* Sidebar para desktop */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 transition-colors duration-300 bg-white border-r md:flex md:flex-col dark:bg-dark-900 border-slate-200 dark:border-dark-800">
         <div className="p-6 border-b border-slate-200 dark:border-dark-800">
           <div className="flex items-center gap-3">
@@ -170,9 +171,7 @@ const Layout = ({ children }) => {
         </div>
       )}
 
-      {/* Contenido principal */}
       <div className="md:ml-64">
-        {/* Header */}
         <header className="sticky top-0 z-40 transition-colors duration-300 bg-white border-b dark:bg-dark-900 border-slate-200 dark:border-dark-800">
           <div className="px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between">
@@ -212,7 +211,6 @@ const Layout = ({ children }) => {
           </div>
         </header>
 
-        {/* Contenido */}
         <main className="p-4 sm:p-6 lg:p-8">
           {children}
         </main>

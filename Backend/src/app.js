@@ -13,6 +13,7 @@ import invoiceRoutes from './routes/invoiceRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import unitRoutes from './routes/unitRoutes.js';
 import productUnitRoute from './routes/productUnitRoute.js';
+import promotionRoutes from './routes/promotionRoute.js';
 
 const app = express();
 
@@ -27,6 +28,8 @@ app.use('/api/invoices', invoiceRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/units', unitRoutes);
 app.use('/api/product-units', productUnitRoute); 
+app.use('/api/promotions', promotionRoutes); 
+
 
 
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
@@ -46,7 +49,7 @@ async function syncDatabase() {
     
     await models.InvoiceDetail.sync({ alter: true });
 
-    await models.Pro
+    await models.Promotion.sync({ alter: true });
     
     console.log('🟢 Database synced');
   } catch (err) {

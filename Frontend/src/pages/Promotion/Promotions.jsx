@@ -28,6 +28,7 @@ import {
 } from '@ant-design/icons';
 import promotionService from '../../services/promotionService';
 import productService from '../../services/productService';
+import productUnitService from '../../services/productUnitService';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -41,6 +42,8 @@ const Promotions = () => {
   const [editingId, setEditingId] = useState(null);
   const [promotions, setPromotions] = useState([]);
   const [products, setProducts] = useState([]);
+  const [productUnits, setProductUnits] = useState([]);
+  const [selectedProductId, setSelectedProductId] = useState(null);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -84,17 +87,49 @@ const Promotions = () => {
     }
   };
 
+  const handleProductChange = async (productId) => {
+    setSelectedProductId(productId);
+    form.setFieldsValue({ unit_id: undefined });
+    
+    try {
+      setLoading(true);
+      const response = await productUnitService.getByProduct(productId);
+      setProductUnits(response.data || []);
+    } catch (error) {
+      message.error('Error al cargar unidades del producto');
+      setProductUnits([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleTableChange = (newPagination) => {
     loadPromotions(newPagination.current);
   };
 
-  const handleOpenModal = (record = null) => {
+  const handleOpenModal = async (record = null) => {
     if (record) {
       setEditingId(record.id);
+      
+      if (record.product_id) {
+        try {
+          setLoading(true);
+          setSelectedProductId(record.product_id);
+          const response = await productUnitService.getByProduct(record.product_id);
+          setProductUnits(response.data || []);
+        } catch (error) {
+          message.error('Error al cargar unidades del producto');
+          setProductUnits([]);
+        } finally {
+          setLoading(false);
+        }
+      }
+      
       form.setFieldsValue({
         name: record.name,
         description: record.description,
         product_id: record.product_id,
+        unit_id: record.unit_id,
         promotion_type: record.promotion_type,
         buy_quantity: record.buy_quantity,
         get_quantity: record.get_quantity,
@@ -109,6 +144,8 @@ const Promotions = () => {
     } else {
       setEditingId(null);
       form.resetFields();
+      setProductUnits([]);
+      setSelectedProductId(null);
     }
     setModalVisible(true);
   };
@@ -117,6 +154,8 @@ const Promotions = () => {
     setModalVisible(false);
     setEditingId(null);
     form.resetFields();
+    setProductUnits([]);
+    setSelectedProductId(null);
   };
 
   const handleSubmit = async (values) => {
@@ -126,6 +165,7 @@ const Promotions = () => {
         name: values.name,
         description: values.description,
         product_id: values.product_id,
+        unit_id: values.unit_id,
         promotion_type: values.promotion_type,
         active: values.active !== undefined ? values.active : true
       };
@@ -204,13 +244,15 @@ const Promotions = () => {
   };
 
   const getPromotionDescription = (record) => {
+    const unitName = record.unit?.name || '';
+    
     switch (record.promotion_type) {
       case 'buy_x_get_y':
-        return `Compra ${record.buy_quantity} lleva ${record.buy_quantity + record.get_quantity}`;
+        return `Compra ${record.buy_quantity} lleva ${record.buy_quantity + record.get_quantity} ${unitName}`;
       case 'percentage_discount':
-        return `${record.discount_percentage}% de descuento (min: ${record.min_quantity})`;
+        return `${record.discount_percentage}% descuento (min: ${record.min_quantity} ${unitName})`;
       case 'fixed_discount':
-        return `$${record.discount_amount} de descuento (min: ${record.min_quantity})`;
+        return `$${record.discount_amount} descuento (min: ${record.min_quantity} ${unitName})`;
       default:
         return '-';
     }
@@ -221,19 +263,28 @@ const Promotions = () => {
       title: 'Nombre',
       dataIndex: 'name',
       key: 'name',
-      width: '20%'
+      width: '18%'
     },
     {
       title: 'Producto',
       dataIndex: ['product', 'name'],
       key: 'product_name',
-      width: '18%'
+      width: '15%'
+    },
+    {
+      title: 'Unidad',
+      dataIndex: ['unit', 'name'],
+      key: 'unit_name',
+      width: '10%',
+      render: (unitName) => (
+        <Tag color="cyan">{unitName}</Tag>
+      )
     },
     {
       title: 'Tipo',
       dataIndex: 'promotion_type',
       key: 'promotion_type',
-      width: '15%',
+      width: '13%',
       render: (type) => (
         <Tag icon={getPromotionTypeIcon(type)} color="blue">
           {getPromotionTypeLabel(type)}
@@ -243,13 +294,13 @@ const Promotions = () => {
     {
       title: 'Detalle',
       key: 'detail',
-      width: '20%',
+      width: '18%',
       render: (_, record) => getPromotionDescription(record)
     },
     {
       title: 'Vigencia',
       key: 'validity',
-      width: '12%',
+      width: '10%',
       render: (_, record) => {
         if (!record.start_date && !record.end_date) {
           return <Tag color="green">Permanente</Tag>;
@@ -384,6 +435,7 @@ const Promotions = () => {
                   showSearch
                   placeholder="Seleccionar producto"
                   optionFilterProp="children"
+                  onChange={handleProductChange}
                 >
                   {products.map(product => (
                     <Option key={product.id} value={product.id}>
@@ -394,6 +446,24 @@ const Promotions = () => {
               </Form.Item>
             </Col>
           </Row>
+
+          <Form.Item
+            name="unit_id"
+            label="Unidad de Medida"
+            rules={[{ required: true, message: 'Seleccione una unidad' }]}
+            tooltip="La promoción aplicará solo para esta unidad de medida"
+          >
+            <Select
+              placeholder="Seleccione primero un producto"
+              disabled={!selectedProductId || productUnits.length === 0}
+            >
+              {productUnits.map(pu => (
+                <Option key={pu.unit.id} value={pu.unit.id}>
+                  {pu.unit.name} {pu.unit.abbreviation && `(${pu.unit.abbreviation})`}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
 
           <Form.Item
             name="description"
@@ -420,7 +490,6 @@ const Promotions = () => {
             </Select>
           </Form.Item>
 
-          {/* Campos según tipo de promoción */}
           <Form.Item
             noStyle
             shouldUpdate={(prevValues, currentValues) => 

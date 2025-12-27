@@ -11,14 +11,18 @@ import {
   Col,
   Statistic,
   Modal,
-  Switch
+  Switch,
+  InputNumber,
+  Form
 } from 'antd';
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   SearchOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  PlusCircleOutlined,
+  MinusCircleOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import productService from '../../services/productService';
@@ -36,6 +40,12 @@ const ProductList = () => {
   });
   const [searchText, setSearchText] = useState('');
   const [stats, setStats] = useState(null);
+  
+  // Estados para el modal de ajuste de stock
+  const [stockModalVisible, setStockModalVisible] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [stockOperation, setStockOperation] = useState('add'); // 'add' o 'subtract'
+  const [stockForm] = Form.useForm();
 
   useEffect(() => {
     loadProducts();
@@ -110,6 +120,47 @@ const ProductList = () => {
     }
   };
 
+  // ← NUEVA FUNCIÓN: Abrir modal para ajustar stock
+  const handleOpenStockModal = (product, operation) => {
+    setSelectedProduct(product);
+    setStockOperation(operation);
+    stockForm.resetFields();
+    setStockModalVisible(true);
+  };
+
+  // ← NUEVA FUNCIÓN: Cerrar modal
+  const handleCloseStockModal = () => {
+    setStockModalVisible(false);
+    setSelectedProduct(null);
+    stockForm.resetFields();
+  };
+
+  // ← NUEVA FUNCIÓN: Ajustar stock
+  const handleAdjustStock = async (values) => {
+    try {
+      const quantity = values.quantity;
+      const newStock = stockOperation === 'add' 
+        ? selectedProduct.stock + quantity 
+        : selectedProduct.stock - quantity;
+
+      if (newStock < 0) {
+        message.error('El stock no puede ser negativo');
+        return;
+      }
+
+      await productService.updateProduct(selectedProduct.id, { stock: newStock });
+      
+      const operationText = stockOperation === 'add' ? 'agregado' : 'restado';
+      message.success(`Stock ${operationText} correctamente`);
+      
+      handleCloseStockModal();
+      loadProducts(pagination.current, pagination.pageSize);
+      loadStats();
+    } catch (error) {
+      message.error('Error al ajustar stock');
+    }
+  };
+
   const columns = [
     {
       title: 'Nombre',
@@ -156,6 +207,30 @@ const ProductList = () => {
           checkedChildren="Activo"
           unCheckedChildren="Inactivo"
         />
+      )
+    },
+    {
+      title: 'Ajustar Stock', // ← NUEVA COLUMNA
+      key: 'stock_adjust',
+      width: 120,
+      render: (_, record) => (
+        <Space>
+          <Button
+            icon={<PlusCircleOutlined />}
+            size="small"
+            type="primary"
+            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+            onClick={() => handleOpenStockModal(record, 'add')}
+            title="Agregar stock"
+          />
+          <Button
+            icon={<MinusCircleOutlined />}
+            size="small"
+            danger
+            onClick={() => handleOpenStockModal(record, 'subtract')}
+            title="Restar stock"
+          />
+        </Space>
       )
     },
     {
@@ -253,6 +328,7 @@ const ProductList = () => {
           </Col>
         </Row>
       </Card>
+
       <Card>
         <Table
           columns={columns}
@@ -261,9 +337,111 @@ const ProductList = () => {
           loading={loading}
           pagination={pagination}
           onChange={handleTableChange}
-          scroll={{ x: 1000 }}
+          scroll={{ x: 1200 }}
         />
       </Card>
+
+      <Modal
+        title={
+          <Space>
+            {stockOperation === 'add' ? (
+              <PlusCircleOutlined style={{ color: '#52c41a', fontSize: '20px' }} />
+            ) : (
+              <MinusCircleOutlined style={{ color: '#ff4d4f', fontSize: '20px' }} />
+            )}
+            <span>
+              {stockOperation === 'add' ? 'Agregar Stock' : 'Restar Stock'}
+            </span>
+          </Space>
+        }
+        open={stockModalVisible}
+        onCancel={handleCloseStockModal}
+        onOk={() => stockForm.submit()}
+        okText={stockOperation === 'add' ? 'Agregar' : 'Restar'}
+        okButtonProps={{ 
+          style: stockOperation === 'add' 
+            ? { backgroundColor: '#52c41a', borderColor: '#52c41a' }
+            : {} 
+        }}
+        cancelText="Cancelar"
+      >
+        {selectedProduct && (
+          <Form
+            form={stockForm}
+            layout="vertical"
+            onFinish={handleAdjustStock}
+          >
+            <Card size="small" style={{ marginBottom: '16px', backgroundColor: '#f0f5ff' }}>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <strong>Producto:</strong>
+                  <div>{selectedProduct.name}</div>
+                </Col>
+                <Col span={12}>
+                  <strong>Stock Actual:</strong>
+                  <div>
+                    <Tag color={
+                      selectedProduct.stock === 0 ? 'red' : 
+                      selectedProduct.stock < 10 ? 'orange' : 'green'
+                    }>
+                      {selectedProduct.stock} unidades
+                    </Tag>
+                  </div>
+                </Col>
+              </Row>
+            </Card>
+
+            <Form.Item
+              name="quantity"
+              label={`Cantidad a ${stockOperation === 'add' ? 'agregar' : 'restar'}`}
+              rules={[
+                { required: true, message: 'Ingrese la cantidad' },
+                { 
+                  validator: (_, value) => {
+                    if (stockOperation === 'subtract' && value > selectedProduct.stock) {
+                      return Promise.reject('No puedes restar más del stock disponible');
+                    }
+                    return Promise.resolve();
+                  }
+                }
+              ]}
+            >
+              <InputNumber
+                min={1}
+                max={stockOperation === 'subtract' ? selectedProduct.stock : undefined}
+                style={{ width: '100%' }}
+                placeholder="Ingrese cantidad"
+                size="large"
+              />
+            </Form.Item>
+
+            <Form.Item
+              noStyle
+              shouldUpdate
+            >
+              {({ getFieldValue }) => {
+                const quantity = getFieldValue('quantity') || 0;
+                const newStock = stockOperation === 'add' 
+                  ? selectedProduct.stock + quantity 
+                  : selectedProduct.stock - quantity;
+
+                return quantity > 0 ? (
+                  <Card size="small" style={{ backgroundColor: '#f6ffed' }}>
+                    <Row>
+                      <Col span={24}>
+                        <strong>Nuevo stock será:</strong>
+                        <div style={{ fontSize: '20px', color: '#52c41a', marginTop: '8px' }}>
+                          {newStock} unidades
+                        </div>
+                      </Col>
+                    </Row>
+                  </Card>
+                ) : null;
+              }}
+            </Form.Item>
+          </Form>
+        )}
+      </Modal>
     </div>
   );
 };

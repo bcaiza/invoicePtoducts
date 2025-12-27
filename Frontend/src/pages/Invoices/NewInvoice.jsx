@@ -16,7 +16,8 @@ import {
   Checkbox,
   Tooltip,
   Spin,
-  Tag
+  Tag,
+  Badge
 } from 'antd';
 import {
   DeleteOutlined,
@@ -24,13 +25,15 @@ import {
   CloseOutlined,
   EditOutlined,
   CheckOutlined,
-  UserOutlined
+  UserOutlined,
+  GiftOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import invoiceService from '../../services/invoiceService';
 import customerService from '../../services/customerService';
 import productService from '../../services/productService';
 import unitService from '../../services/unitsService';
+import promotionService from '../../services/promotionService';
 import dayjs from 'dayjs';
 
 const { Option } = Select;
@@ -48,6 +51,7 @@ const NewInvoice = () => {
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
   const [units, setUnits] = useState([]);
+  const [promotions, setPromotions] = useState([]);
   const [invoiceDetails, setInvoiceDetails] = useState([]);
   const [applyTax, setApplyTax] = useState(true);
   const [calculations, setCalculations] = useState({
@@ -61,6 +65,7 @@ const NewInvoice = () => {
     loadCustomers();
     loadProducts();
     loadUnits();
+    loadPromotions();
   }, []);
 
   useEffect(() => {
@@ -111,6 +116,15 @@ const NewInvoice = () => {
     }
   };
 
+  const loadPromotions = async () => {
+    try {
+      const data = await promotionService.getActive();
+      setPromotions(data.data || []);
+    } catch (error) {
+      console.error('Error al cargar promociones:', error);
+    }
+  };
+
   const handleCustomerSearch = (value) => {
     if (value) {
       loadCustomers(value);
@@ -138,6 +152,62 @@ const NewInvoice = () => {
     return units.find(u => u.id === unitId);
   };
 
+  // ← ACTUALIZADO: Ahora también verifica la unidad
+  const getActivePromotion = (productId, unitId) => {
+    return promotions.find(p => 
+      p.product_id === productId && 
+      p.unit_id === unitId && 
+      p.active
+    );
+  };
+
+  // ← ACTUALIZADO: Ahora recibe unitId
+  const calculatePromotionBenefit = (productId, unitId, quantity, unitPrice) => {
+    const promotion = getActivePromotion(productId, unitId);
+    
+    if (!promotion) {
+      return { bonus: 0, discount: 0, totalQuantity: quantity, promotionApplied: null };
+    }
+
+    switch (promotion.promotion_type) {
+      case 'buy_x_get_y':
+        const sets = Math.floor(quantity / promotion.buy_quantity);
+        const bonus = sets * promotion.get_quantity;
+        return { 
+          bonus, 
+          discount: 0, 
+          totalQuantity: quantity + bonus,
+          promotionApplied: promotion
+        };
+        
+      case 'percentage_discount':
+        if (quantity >= promotion.min_quantity) {
+          const discount = (unitPrice * quantity * promotion.discount_percentage) / 100;
+          return { 
+            bonus: 0, 
+            discount, 
+            totalQuantity: quantity,
+            promotionApplied: promotion
+          };
+        }
+        return { bonus: 0, discount: 0, totalQuantity: quantity, promotionApplied: null };
+        
+      case 'fixed_discount':
+        if (quantity >= promotion.min_quantity) {
+          return { 
+            bonus: 0, 
+            discount: promotion.discount_amount, 
+            totalQuantity: quantity,
+            promotionApplied: promotion
+          };
+        }
+        return { bonus: 0, discount: 0, totalQuantity: quantity, promotionApplied: null };
+        
+      default:
+        return { bonus: 0, discount: 0, totalQuantity: quantity, promotionApplied: null };
+    }
+  };
+
   const handleAddProduct = (productId, quantity = 1) => {
     const product = products.find(p => p.id === productId);
     
@@ -160,13 +230,25 @@ const NewInvoice = () => {
       const conversionQuantity = newDetails[existingIndex].conversion_quantity || 1;
       const quantityInBaseUnit = newQuantity * conversionQuantity;
       
-      if (product.stock < quantityInBaseUnit) {
+      // 🎁 Aplicar promoción con unitId
+      const promotionBenefit = calculatePromotionBenefit(
+        productId, 
+        newDetails[existingIndex].unit_id, // ← AGREGADO
+        newQuantity, 
+        newDetails[existingIndex].unit_price
+      );
+      const bonusInBaseUnits = promotionBenefit.bonus * conversionQuantity;
+      
+      if (product.stock < (quantityInBaseUnit + bonusInBaseUnits)) {
         message.error(`Stock insuficiente. Disponible: ${product.stock}`);
         return;
       }
       
       newDetails[existingIndex].quantity = newQuantity;
       newDetails[existingIndex].quantity_base_unit = quantityInBaseUnit;
+      newDetails[existingIndex].promotion_bonus = promotionBenefit.bonus;
+      newDetails[existingIndex].promotion_discount = promotionBenefit.discount;
+      newDetails[existingIndex].promotion_applied = promotionBenefit.promotionApplied;
       newDetails[existingIndex] = calculateItemTotals(newDetails[existingIndex]);
       setInvoiceDetails(newDetails);
     } else {
@@ -176,6 +258,14 @@ const NewInvoice = () => {
 
       const unitPrice = parseFloat(product.pvp);
       const taxAmount = applyTax ? unitPrice * TAX_RATE : 0;
+      
+      // 🎁 Aplicar promoción con unitId
+      const promotionBenefit = calculatePromotionBenefit(
+        productId, 
+        defaultUnitId, // ← AGREGADO
+        quantity, 
+        unitPrice
+      );
       
       const newDetail = {
         key: Date.now(),
@@ -191,6 +281,9 @@ const NewInvoice = () => {
         unit_price: unitPrice,
         tax_per_unit: taxAmount,
         item_discount: 0,
+        promotion_bonus: promotionBenefit.bonus,
+        promotion_discount: promotionBenefit.discount,
+        promotion_applied: promotionBenefit.promotionApplied,
         subtotal: 0,
         available_stock: product.stock,
         isEditingName: false,
@@ -204,7 +297,8 @@ const NewInvoice = () => {
 
   const calculateItemTotals = (detail) => {
     const priceWithTax = detail.unit_price + detail.tax_per_unit;
-    const subtotal = (priceWithTax * detail.quantity) - detail.item_discount;
+    const promotionDiscount = detail.promotion_discount || 0;
+    const subtotal = (priceWithTax * detail.quantity) - detail.item_discount - promotionDiscount;
     
     return {
       ...detail,
@@ -222,7 +316,16 @@ const NewInvoice = () => {
         const conversionQuantity = detail.conversion_quantity || 1;
         const quantityInBaseUnit = newQuantity * conversionQuantity;
         
-        if (quantityInBaseUnit > detail.available_stock) {
+        // 🎁 Recalcular promoción con unitId
+        const promotionBenefit = calculatePromotionBenefit(
+          detail.product_id, 
+          detail.unit_id, // ← AGREGADO
+          newQuantity, 
+          detail.unit_price
+        );
+        const bonusInBaseUnits = promotionBenefit.bonus * conversionQuantity;
+        
+        if ((quantityInBaseUnit + bonusInBaseUnits) > detail.available_stock) {
           message.error(`Stock insuficiente. Disponible: ${detail.available_stock} unidades base`);
           return detail;
         }
@@ -230,7 +333,10 @@ const NewInvoice = () => {
         const updated = { 
           ...detail, 
           quantity: newQuantity,
-          quantity_base_unit: quantityInBaseUnit
+          quantity_base_unit: quantityInBaseUnit,
+          promotion_bonus: promotionBenefit.bonus,
+          promotion_discount: promotionBenefit.discount,
+          promotion_applied: promotionBenefit.promotionApplied
         };
         return calculateItemTotals(updated);
       }
@@ -269,6 +375,14 @@ const NewInvoice = () => {
         const newTaxPerUnit = applyTax ? newUnitPrice * TAX_RATE : 0;
         const quantityInBaseUnit = detail.quantity * conversionQuantity;
         
+        // 🎁 Recalcular promoción con nuevo unitId y precio
+        const promotionBenefit = calculatePromotionBenefit(
+          detail.product_id, 
+          newUnitId, // ← ACTUALIZADO: ahora usa el nuevo unitId
+          detail.quantity, 
+          newUnitPrice
+        );
+        
         const updated = {
           ...detail,
           unit_id: newUnitId,
@@ -276,7 +390,10 @@ const NewInvoice = () => {
           unit_price: newUnitPrice,
           tax_per_unit: newTaxPerUnit,
           quantity_base_unit: quantityInBaseUnit,
-          conversion_quantity: conversionQuantity
+          conversion_quantity: conversionQuantity,
+          promotion_bonus: promotionBenefit.bonus,
+          promotion_discount: promotionBenefit.discount,
+          promotion_applied: promotionBenefit.promotionApplied
         };
         
         return calculateItemTotals(updated);
@@ -321,10 +438,21 @@ const NewInvoice = () => {
     const newDetails = invoiceDetails.map(detail => {
       if (detail.key === key) {
         const newTaxPerUnit = applyTax ? newPrice * TAX_RATE : 0;
+        
+        // 🎁 Recalcular promoción con nuevo precio y unitId
+        const promotionBenefit = calculatePromotionBenefit(
+          detail.product_id, 
+          detail.unit_id, // ← AGREGADO
+          detail.quantity, 
+          newPrice
+        );
+        
         const updated = {
           ...detail,
           unit_price: parseFloat(newPrice), 
-          tax_per_unit: newTaxPerUnit       
+          tax_per_unit: newTaxPerUnit,
+          promotion_discount: promotionBenefit.discount,
+          promotion_applied: promotionBenefit.promotionApplied
         };
         
         return calculateItemTotals(updated);
@@ -374,8 +502,13 @@ const NewInvoice = () => {
       return sum + detail.item_discount;
     }, 0);
     
+    // 🎁 Sumar descuentos de promociones
+    const totalPromotionDiscounts = invoiceDetails.reduce((sum, detail) => {
+      return sum + (detail.promotion_discount || 0);
+    }, 0);
+    
     const generalDiscount = parseFloat(form.getFieldValue('discount') || 0);
-    const totalDiscount = totalItemDiscounts + generalDiscount;
+    const totalDiscount = totalItemDiscounts + totalPromotionDiscounts + generalDiscount;
     
     const total = subtotal + totalTax - totalDiscount;
 
@@ -383,6 +516,7 @@ const NewInvoice = () => {
       subtotal: subtotal.toFixed(2),
       totalTax: totalTax.toFixed(2),
       totalDiscount: totalDiscount.toFixed(2),
+      totalPromotionDiscounts: totalPromotionDiscounts.toFixed(2),
       total: total.toFixed(2)
     });
   };
@@ -403,16 +537,21 @@ const NewInvoice = () => {
         discount: parseFloat(calculations.totalDiscount),
         payment_method: values.payment_method,
         notes: values.notes,
-        details: invoiceDetails.map(detail => ({
-          product_id: detail.product_id,
-          product_name: detail.product_name,
-          unit_id: detail.unit_id,
-          unit_name: detail.unit_name,
-          quantity: detail.quantity,
-          quantity_base_unit: detail.quantity_base_unit,
-          unit_price: detail.unit_price,
-          subtotal: detail.subtotal
-        }))
+        details: invoiceDetails.map(detail => {
+          const conversionQuantity = detail.conversion_quantity || 1;
+          const bonusInBaseUnits = (detail.promotion_bonus || 0) * conversionQuantity;
+          
+          return {
+            product_id: detail.product_id,
+            product_name: detail.product_name,
+            unit_id: detail.unit_id,
+            unit_name: detail.unit_name,
+            quantity: detail.quantity,
+            quantity_base_unit: detail.quantity_base_unit + bonusInBaseUnits,
+            unit_price: detail.unit_price,
+            subtotal: detail.subtotal
+          };
+        })
       };
 
       await invoiceService.createInvoice(invoiceData);
@@ -430,7 +569,7 @@ const NewInvoice = () => {
       title: 'Producto',
       dataIndex: 'product_name',
       key: 'product_name',
-      width: '16%',
+      width: '15%',
       render: (name, record) => (
         <Space direction="vertical" style={{ width: '100%' }}>
           {record.isEditingName ? (
@@ -474,7 +613,7 @@ const NewInvoice = () => {
       title: 'Unidad',
       dataIndex: 'unit_id',
       key: 'unit_id',
-      width: '9%',
+      width: '8%',
       render: (unitId, record) => {
         const availableUnits = record.available_units || [];
         
@@ -505,7 +644,7 @@ const NewInvoice = () => {
       title: 'Precio Unit.',
       dataIndex: 'unit_price',
       key: 'unit_price',
-      width: '10%',
+      width: '9%',
       render: (price, record) => (
         <Space direction="vertical" style={{ width: '100%' }}>
           {record.isEditingPrice ? (
@@ -548,10 +687,10 @@ const NewInvoice = () => {
       )
     },
     {
-      title: 'IVA (15%)',
+      title: 'IVA',
       dataIndex: 'tax_per_unit',
       key: 'tax_per_unit',
-      width: '9%',
+      width: '7%',
       render: (tax) => (
         <span style={{ color: applyTax ? '#1890ff' : '#d9d9d9' }}>
           ${parseFloat(tax).toFixed(2)}
@@ -562,7 +701,7 @@ const NewInvoice = () => {
       title: 'Cantidad',
       dataIndex: 'quantity',
       key: 'quantity',
-      width: '9%',
+      width: '8%',
       render: (quantity, record) => (
         <InputNumber
           min={1}
@@ -573,13 +712,42 @@ const NewInvoice = () => {
       )
     },
     {
+      title: '🎁 Promo',
+      key: 'promotion',
+      width: '9%',
+      render: (_, record) => {
+        if (record.promotion_bonus > 0) {
+          return (
+            <Tooltip title={`Promoción: ${record.promotion_applied?.name}`}>
+              <Tag icon={<GiftOutlined />} color="gold">
+                +{record.promotion_bonus} gratis
+              </Tag>
+            </Tooltip>
+          );
+        }
+        if (record.promotion_discount > 0) {
+          return (
+            <Tooltip title={`Promoción: ${record.promotion_applied?.name}`}>
+              <Tag icon={<GiftOutlined />} color="gold">
+                -${record.promotion_discount.toFixed(2)}
+              </Tag>
+            </Tooltip>
+          );
+        }
+        return <Tag color="default">Sin promo</Tag>;
+      }
+    },
+    {
       title: 'Stock a Descontar',
       dataIndex: 'quantity_base_unit',
       key: 'quantity_base_unit',
       width: '10%',
       render: (quantityBaseUnit, record) => {
         const conversionQuantity = record.conversion_quantity || 1;
-        const willDeduct = quantityBaseUnit || (record.quantity * conversionQuantity);
+        const bonus = record.promotion_bonus || 0;
+        
+        const bonusInBaseUnits = bonus * conversionQuantity;
+        const willDeduct = (quantityBaseUnit || (record.quantity * conversionQuantity)) + bonusInBaseUnits;
         
         const isExceeding = willDeduct > record.available_stock;
         
@@ -591,9 +759,12 @@ const NewInvoice = () => {
             >
               {willDeduct.toFixed(2)} u
             </Tag>
-            {conversionQuantity > 1 && (
+            {(conversionQuantity > 1 || bonus > 0) && (
               <small style={{ color: '#888', fontSize: '11px' }}>
-                ({record.quantity} × {conversionQuantity})
+                {bonus > 0 
+                  ? `(${record.quantity} + ${bonus} promo) × ${conversionQuantity}`
+                  : `(${record.quantity} × ${conversionQuantity})`
+                }
               </small>
             )}
           </Space>
@@ -601,10 +772,10 @@ const NewInvoice = () => {
       }
     },
     {
-      title: 'Descuento Item',
+      title: 'Desc. Item',
       dataIndex: 'item_discount',
       key: 'item_discount',
-      width: '10%',
+      width: '9%',
       render: (discount, record) => (
         <InputNumber
           min={0}
@@ -617,10 +788,10 @@ const NewInvoice = () => {
       )
     },
     {
-      title: 'Stock Disp.',
+      title: 'Stock',
       dataIndex: 'available_stock',
       key: 'available_stock',
-      width: '8%',
+      width: '7%',
       render: (stock) => (
         <span style={{ color: stock < 10 ? '#ff4d4f' : '#52c41a' }}>
           {stock}
@@ -631,7 +802,7 @@ const NewInvoice = () => {
       title: 'Subtotal',
       dataIndex: 'subtotal',
       key: 'subtotal',
-      width: '10%',
+      width: '9%',
       render: (subtotal) => (
         <strong style={{ color: '#52c41a' }}>
           ${parseFloat(subtotal).toFixed(2)}
@@ -639,9 +810,9 @@ const NewInvoice = () => {
       )
     },
     {
-      title: 'Acción',
+      title: '',
       key: 'action',
-      width: '5%',
+      width: '4%',
       render: (_, record) => (
         <Button
           type="text"
@@ -658,9 +829,18 @@ const NewInvoice = () => {
       <Card
         title="Nueva Factura"
         extra={
-          <Button icon={<CloseOutlined />} onClick={() => navigate('/invoices')}>
-            Cancelar
-          </Button>
+          <Space>
+            {promotions.length > 0 && (
+              <Badge count={promotions.length} showZero>
+                <Tag icon={<GiftOutlined />} color="gold">
+                  {promotions.length} promoción(es) activa(s)
+                </Tag>
+              </Badge>
+            )}
+            <Button icon={<CloseOutlined />} onClick={() => navigate('/invoices')}>
+              Cancelar
+            </Button>
+          </Space>
         }
       >
         <Form
@@ -756,14 +936,20 @@ const NewInvoice = () => {
               >
                 {products.map(product => {
                   const baseUnit = getUnitInfo(product.base_unit_id);
+                  // ← ACTUALIZADO: Verificar promoción con la unidad base
+                  const hasPromotion = getActivePromotion(product.id, product.base_unit_id);
+                  
                   return (
                     <Option 
                       key={product.id} 
                       value={product.id}
                       disabled={product.stock === 0}
                     >
-                      {product.name} - ${product.pvp} 
-                      {baseUnit && ` (${baseUnit.abbreviation})`} - Stock: {product.stock}
+                      <Space>
+                        {product.name} - ${product.pvp}
+                        {baseUnit && ` (${baseUnit.abbreviation})`} - Stock: {product.stock}
+                        {hasPromotion && <GiftOutlined style={{ color: '#faad14' }} />}
+                      </Space>
                     </Option>
                   );
                 })}
@@ -776,14 +962,14 @@ const NewInvoice = () => {
             dataSource={invoiceDetails}
             pagination={false}
             bordered
-            scroll={{ x: 1600 }}
+            scroll={{ x: 1700 }}
             summary={() => (
               <Table.Summary fixed>
                 <Table.Summary.Row>
-                  <Table.Summary.Cell colSpan={8} align="right">
+                  <Table.Summary.Cell colSpan={9} align="right">
                     <strong>Subtotal:</strong>
                   </Table.Summary.Cell>
-                  <Table.Summary.Cell colSpan={3}>
+                  <Table.Summary.Cell colSpan={4}>
                     <strong>${calculations.subtotal}</strong>
                   </Table.Summary.Cell>
                 </Table.Summary.Row>
@@ -813,19 +999,25 @@ const NewInvoice = () => {
 
           <Card size="small" style={{ marginBottom: '16px', backgroundColor: '#f0f5ff' }}>
             <Row gutter={16}>
-              <Col span={8}>
+              <Col span={6}>
                 <strong>Subtotal (sin IVA):</strong>
                 <div style={{ fontSize: '16px', color: '#1890ff' }}>
                   ${calculations.subtotal}
                 </div>
               </Col>
-              <Col span={8}>
+              <Col span={6}>
                 <strong>IVA Total (15%):</strong>
                 <div style={{ fontSize: '16px', color: '#1890ff' }}>
                   ${calculations.totalTax}
                 </div>
               </Col>
-              <Col span={8}>
+              <Col span={6}>
+                <strong>Desc. Promociones:</strong>
+                <div style={{ fontSize: '16px', color: '#faad14' }}>
+                  -${calculations.totalPromotionDiscounts || '0.00'}
+                </div>
+              </Col>
+              <Col span={6}>
                 <strong>Descuentos Totales:</strong>
                 <div style={{ fontSize: '16px', color: '#ff4d4f' }}>
                   -${calculations.totalDiscount}
