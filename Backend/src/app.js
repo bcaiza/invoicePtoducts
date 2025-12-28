@@ -45,8 +45,13 @@ async function syncDatabase() {
     
     await models.Product.sync({ alter: true });
     await models.ProductUnit.sync({ alter: true });
-    await models.Invoice.sync({ alter: true });
     
+    // IMPORTANTE: RawMaterial debe ir ANTES de ProductRecipe
+    await models.RawMaterial.sync({ alter: true });
+    await models.ProductRecipe.sync({ alter: true });
+    await models.Production.sync({ alter: true });
+    
+    await models.Invoice.sync({ alter: true });
     await models.InvoiceDetail.sync({ alter: true });
 
     await models.Promotion.sync({ alter: true });
@@ -60,6 +65,6 @@ async function syncDatabase() {
 
 syncDatabase();
 
-app.get('/', (req, res) => res.send('Bizcocho API ready 🧁'));
+app.get("/", (req, res) => res.send("Bizcocho API ready 🧁"));
 
 export default app;
