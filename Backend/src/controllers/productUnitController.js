@@ -19,14 +19,12 @@ export const getProductUnits = async (req, res) => {
     const offset = (page - 1) * limit;
     const where = {};
 
-    // Filtros específicos
     if (product_id) where.product_id = product_id;
     if (unit_id) where.unit_id = unit_id;
     if (is_base_unit !== undefined) where.is_base_unit = is_base_unit === 'true';
     if (is_sales_unit !== undefined) where.is_sales_unit = is_sales_unit === 'true';
     if (is_purchase_unit !== undefined) where.is_purchase_unit = is_purchase_unit === 'true';
 
-    // Búsqueda por nombre de producto o unidad
     const includeOptions = [
       {
         model: Product,

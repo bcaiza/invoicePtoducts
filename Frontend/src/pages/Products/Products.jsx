@@ -161,6 +161,47 @@ const ProductList = () => {
     }
   };
 
+  // ← NUEVA FUNCIÓN: Abrir modal para ajustar stock
+  const handleOpenStockModal = (product, operation) => {
+    setSelectedProduct(product);
+    setStockOperation(operation);
+    stockForm.resetFields();
+    setStockModalVisible(true);
+  };
+
+  // ← NUEVA FUNCIÓN: Cerrar modal
+  const handleCloseStockModal = () => {
+    setStockModalVisible(false);
+    setSelectedProduct(null);
+    stockForm.resetFields();
+  };
+
+  // ← NUEVA FUNCIÓN: Ajustar stock
+  const handleAdjustStock = async (values) => {
+    try {
+      const quantity = values.quantity;
+      const newStock = stockOperation === 'add' 
+        ? selectedProduct.stock + quantity 
+        : selectedProduct.stock - quantity;
+
+      if (newStock < 0) {
+        message.error('El stock no puede ser negativo');
+        return;
+      }
+
+      await productService.updateProduct(selectedProduct.id, { stock: newStock });
+      
+      const operationText = stockOperation === 'add' ? 'agregado' : 'restado';
+      message.success(`Stock ${operationText} correctamente`);
+      
+      handleCloseStockModal();
+      loadProducts(pagination.current, pagination.pageSize);
+      loadStats();
+    } catch (error) {
+      message.error('Error al ajustar stock');
+    }
+  };
+
   const columns = [
     {
       title: "Nombre",
@@ -322,6 +363,7 @@ const ProductList = () => {
           </Col>
         </Row>
       </Card>
+
       <Card>
         <Table
           columns={columns}
@@ -330,7 +372,7 @@ const ProductList = () => {
           loading={loading}
           pagination={pagination}
           onChange={handleTableChange}
-          scroll={{ x: 1000 }}
+          scroll={{ x: 1200 }}
         />
       </Card>
       <Modal

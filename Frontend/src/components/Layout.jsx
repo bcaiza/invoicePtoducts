@@ -86,7 +86,6 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen transition-colors duration-300 bg-slate-50 dark:bg-dark-950">
-      {/* Sidebar para desktop */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 transition-colors duration-300 bg-white border-r md:flex md:flex-col dark:bg-dark-900 border-slate-200 dark:border-dark-800">
         <div className="p-6 border-b border-slate-200 dark:border-dark-800">
           <div className="flex items-center gap-3">
@@ -225,9 +224,7 @@ const Layout = ({ children }) => {
         </div>
       )}
 
-      {/* Contenido principal */}
       <div className="md:ml-64">
-        {/* Header */}
         <header className="sticky top-0 z-40 transition-colors duration-300 bg-white border-b dark:bg-dark-900 border-slate-200 dark:border-dark-800">
           <div className="px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between">

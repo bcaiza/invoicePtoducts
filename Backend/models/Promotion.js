@@ -30,6 +30,7 @@ const Promotion = sequelize.define(
       },
       onDelete: 'CASCADE',
     },
+    
     promotion_type: {
       type: DataTypes.ENUM('buy_x_get_y', 'percentage_discount', 'fixed_discount'),
       allowNull: false,
@@ -71,6 +72,16 @@ const Promotion = sequelize.define(
     active: {
       type: DataTypes.BOOLEAN,
       defaultValue: true,
+    },
+     unit_id: {  
+      type: DataTypes.UUID,
+      allowNull: false,
+      references: {
+        model: 'units',
+        key: 'id',
+      },
+      onDelete: 'RESTRICT',
+      comment: 'Unidad en la que aplica la promoción',
     },
   },
   {
@@ -130,6 +141,13 @@ Promotion.associate = (models) => {
     foreignKey: 'product_id',
     as: 'product',
   });
+
+   Promotion.belongsTo(models.Unit, {  
+    foreignKey: 'unit_id',
+    as: 'unit',
+  });
 };
+
+
 
 export default Promotion;
