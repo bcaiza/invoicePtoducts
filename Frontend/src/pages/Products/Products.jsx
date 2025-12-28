@@ -23,6 +23,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import productService from "../../services/productService";
 import { PlusCircleOutlined } from "@ant-design/icons";
+import { CoffeeIcon } from "lucide-react";
 
 const { Search } = Input;
 

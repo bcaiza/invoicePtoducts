@@ -41,4 +41,11 @@ const RawMaterial = sequelize.define('RawMaterial', {
   timestamps: true
 });
 
+RawMaterial.associate = (models) => {
+  RawMaterial.hasMany(models.ProductRecipe, { 
+    foreignKey: 'raw_material_id', 
+    as: 'recipes' 
+  });
+};
+
 export default RawMaterial;

@@ -1,4 +1,4 @@
-import ProductRecipe from '../../models/Product.js';
+import ProductRecipe from '../../models/ProductRecipe.js';
 import RawMaterial from '../../models/RawMaterial.js';
 
 export const getProductRecipe = async (req, res) => {
@@ -28,6 +28,7 @@ export const getProductRecipe = async (req, res) => {
       cost_per_unit: recipes[0]?.yield_quantity ? totalCost / recipes[0].yield_quantity : 0
     });
   } catch (error) {
+    console.error('Error fetching recipe:', error);
     res.status(500).json({ message: 'Error fetching recipe', error: error.message });
   }
 };
