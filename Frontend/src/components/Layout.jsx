@@ -1,24 +1,24 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  FileText, 
-  Package, 
-  Users, 
-  UserCircle, 
-  Settings, 
-  LogOut, 
-  Menu, 
-  X, 
-  Sun, 
+import React, { useState } from "react";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+import {
+  LayoutDashboard,
+  FileText,
+  Package,
+  Users,
+  UserCircle,
+  Settings,
+  LogOut,
+  Menu,
+  X,
+  Sun,
   Moon,
   ShieldCheck,
   Ruler,
-  Gift,
-  Boxes
-} from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
+  Box,
+  Factory,
+} from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 
 const Layout = ({ children }) => {
   const { user, logout } = useAuth();
@@ -28,26 +28,65 @@ const Layout = ({ children }) => {
   const location = useLocation();
 
   const menuItems = [
-    { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/invoices', label: 'Facturas', icon: FileText, module: 'invoices' },
-    { path: '/products', label: 'Productos', icon: Package, module: 'products' },
-    { path: '/units', label: 'Unidades', icon: Ruler, module: 'units' },
-    { path: '/product-units', label: 'Unidades de Producto', icon: Boxes, module: 'products' },
-    { path: '/promotions', label: 'Promociones', icon: Gift, module: 'promotion' },
-    { path: '/customers', label: 'Clientes', icon: Users, module: 'customers' },
-    { path: '/users', label: 'Usuarios', icon: UserCircle, module: 'users' },
-    { path: '/roles', label: 'Roles', icon: ShieldCheck, module: 'users' },
+    { path: "/", label: "Dashboard", icon: LayoutDashboard },
+    {
+      path: "/invoices",
+      label: "Facturas",
+      icon: FileText,
+      module: "invoices",
+    },
+    {
+      path: "/products",
+      label: "Productos",
+      icon: Package,
+      module: "products",
+    },
+    { path: "/units", label: "Unidades", icon: Ruler, module: "units" },
+    {
+      path: "/product-units",
+      label: "Unidades de Producto",
+      icon: Ruler,
+    },
+    {
+      path: "/raw-materials",
+      label: "Materias Primas",
+      icon: Box,
+      module: "raw_materials",
+    },
+    {
+      path: "/productions",
+      label: "Producción",
+      icon: Factory,
+      module: "production",
+    },
+    {
+      path: "/promotions",
+      label: "Promociones",
+      icon: Users,
+      module: "promotion",
+    },
+    { path: "/customers", label: "Clientes", icon: Users, module: "customers" },
+    { path: "/users", label: "Usuarios", icon: UserCircle, module: "users" },
+    { path: "/roles", label: "Roles", icon: ShieldCheck, module: "users" },
+    {
+      path: "/audit-logs",
+      label: "Auditoria",
+      icon: ShieldCheck,
+      module: "audit",
+    },
   ];
 
   const handleLogout = () => {
     logout();
-    navigate('/login');
+    navigate("/login");
   };
 
-  const currentMenuItem = menuItems.find(item => item.path === location.pathname) || menuItems[0];
+  const currentMenuItem =
+    menuItems.find((item) => item.path === location.pathname) || menuItems[0];
 
   return (
     <div className="min-h-screen transition-colors duration-300 bg-slate-50 dark:bg-dark-950">
+      {/* Sidebar para desktop */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 transition-colors duration-300 bg-white border-r md:flex md:flex-col dark:bg-dark-900 border-slate-200 dark:border-dark-800">
         <div className="p-6 border-b border-slate-200 dark:border-dark-800">
           <div className="flex items-center gap-3">
@@ -55,8 +94,12 @@ const Layout = ({ children }) => {
               B
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Bizcocho</h1>
-              <p className="text-xs text-slate-500 dark:text-slate-400">Sistema de Ventas</p>
+              <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                Bizcocho
+              </h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Sistema de Ventas
+              </p>
             </div>
           </div>
         </div>
@@ -65,15 +108,15 @@ const Layout = ({ children }) => {
           {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            
+
             return (
               <Link
                 key={item.path}
                 to={item.path}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                   isActive
-                    ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg'
-                    : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800'
+                    ? "bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg"
+                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800"
                 }`}
               >
                 <Icon size={20} />
@@ -89,9 +132,11 @@ const Layout = ({ children }) => {
             className="flex items-center w-full gap-3 px-4 py-3 transition-all duration-200 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800"
           >
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
-            <span className="font-medium">{isDark ? 'Modo Claro' : 'Modo Oscuro'}</span>
+            <span className="font-medium">
+              {isDark ? "Modo Claro" : "Modo Oscuro"}
+            </span>
           </button>
-          
+
           <button
             onClick={handleLogout}
             className="flex items-center w-full gap-3 px-4 py-3 text-red-600 transition-all duration-200 rounded-xl dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
@@ -104,8 +149,11 @@ const Layout = ({ children }) => {
 
       {/* Sidebar móvil */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-50 md:hidden bg-black/50 backdrop-blur-sm" onClick={() => setSidebarOpen(false)}>
-          <aside 
+        <div
+          className="fixed inset-0 z-50 md:hidden bg-black/50 backdrop-blur-sm"
+          onClick={() => setSidebarOpen(false)}
+        >
+          <aside
             className="fixed inset-y-0 left-0 flex flex-col w-64 bg-white shadow-2xl dark:bg-dark-900 animate-slideRight"
             onClick={(e) => e.stopPropagation()}
           >
@@ -115,11 +163,15 @@ const Layout = ({ children }) => {
                   B
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Bizcocho</h1>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Sistema de Ventas</p>
+                  <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                    Bizcocho
+                  </h1>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Sistema de Ventas
+                  </p>
                 </div>
               </div>
-              <button 
+              <button
                 onClick={() => setSidebarOpen(false)}
                 className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-dark-800"
               >
@@ -131,7 +183,7 @@ const Layout = ({ children }) => {
               {menuItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
-                
+
                 return (
                   <Link
                     key={item.path}
@@ -139,8 +191,8 @@ const Layout = ({ children }) => {
                     onClick={() => setSidebarOpen(false)}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
                       isActive
-                        ? 'bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg'
-                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800'
+                        ? "bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg"
+                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800"
                     }`}
                   >
                     <Icon size={20} />
@@ -156,9 +208,11 @@ const Layout = ({ children }) => {
                 className="flex items-center w-full gap-3 px-4 py-3 transition-all duration-200 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800"
               >
                 {isDark ? <Sun size={20} /> : <Moon size={20} />}
-                <span className="font-medium">{isDark ? 'Modo Claro' : 'Modo Oscuro'}</span>
+                <span className="font-medium">
+                  {isDark ? "Modo Claro" : "Modo Oscuro"}
+                </span>
               </button>
-              
+
               <button
                 onClick={handleLogout}
                 className="flex items-center w-full gap-3 px-4 py-3 text-red-600 transition-all duration-200 rounded-xl dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
@@ -171,7 +225,9 @@ const Layout = ({ children }) => {
         </div>
       )}
 
+      {/* Contenido principal */}
       <div className="md:ml-64">
+        {/* Header */}
         <header className="sticky top-0 z-40 transition-colors duration-300 bg-white border-b dark:bg-dark-900 border-slate-200 dark:border-dark-800">
           <div className="px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between">
@@ -196,11 +252,15 @@ const Layout = ({ children }) => {
                 >
                   {isDark ? <Sun size={20} /> : <Moon size={20} />}
                 </button>
-                
+
                 <div className="flex items-center gap-3">
                   <div className="text-right">
-                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{user?.name}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{user?.role?.name}</p>
+                    <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                      {user?.name}
+                    </p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {user?.role?.name}
+                    </p>
                   </div>
                   <div className="flex items-center justify-center w-10 h-10 font-semibold text-white rounded-full gradient-bg">
                     {user?.name?.charAt(0).toUpperCase()}
@@ -211,9 +271,8 @@ const Layout = ({ children }) => {
           </div>
         </header>
 
-        <main className="p-4 sm:p-6 lg:p-8">
-          {children}
-        </main>
+        {/* Contenido */}
+        <main className="p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>
   );
