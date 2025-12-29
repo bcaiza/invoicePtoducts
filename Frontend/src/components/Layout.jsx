@@ -35,6 +35,7 @@ const Layout = ({ children }) => {
     { path: '/product-units', label: 'Unidades de Producto', icon: Boxes, module: 'products' },
     { path: '/promotions', label: 'Promociones', icon: Gift, module: 'promotion' },
     { path: '/customers', label: 'Clientes', icon: Users, module: 'customers' },
+    { path: '/reports', label: 'Reportes', icon: Users, module: 'reports' },
     { path: '/users', label: 'Usuarios', icon: UserCircle, module: 'users' },
     { path: '/roles', label: 'Roles', icon: ShieldCheck, module: 'users' },
   ];

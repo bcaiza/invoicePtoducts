@@ -27,6 +27,7 @@ import EditUser from './pages/User/EditUser';
 import UnitList from './pages/Units/UnitList';
 import ProductUnits from './pages/ProductUnit/ProductUnits';
 import Promotions from './pages/Promotion/Promotions';
+import ReportsPage from './pages/Report/ReportPage';
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -248,6 +249,17 @@ function AppRoutes() {
           }
         />
 
+
+    <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ReportsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
 
 
         <Route path="*" element={<Navigate to="/" replace />} />

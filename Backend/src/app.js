@@ -14,6 +14,7 @@ import authRoutes from './routes/authRoutes.js';
 import unitRoutes from './routes/unitRoutes.js';
 import productUnitRoute from './routes/productUnitRoute.js';
 import promotionRoutes from './routes/promotionRoute.js';
+import reportRoutes from './routes/reportRoutes.js';
 
 const app = express();
 
@@ -29,6 +30,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/units', unitRoutes);
 app.use('/api/product-units', productUnitRoute); 
 app.use('/api/promotions', promotionRoutes); 
+app.use('/api/reports',reportRoutes);
 
 
 
@@ -49,7 +51,7 @@ async function syncDatabase() {
     
     await models.InvoiceDetail.sync({ alter: true });
 
-    await models.Promotion.sync({ alter: true });
+    //await models.Promotion.sync({ alter: true });
     
     console.log('🟢 Database synced');
   } catch (err) {
