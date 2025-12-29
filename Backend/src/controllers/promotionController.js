@@ -1,6 +1,5 @@
-import Promotion from '../../models/Promotion.js';
-import Product from '../../models/Product.js';
-import Unit from '../../models/Unit.js'; // ← AGREGAR
+import Promotion from '../models/Promotion.js';
+import Product from '../models/Product.js';
 import { Op } from 'sequelize';
 
 export const getPromotions = async (req, res) => {
@@ -27,11 +26,6 @@ export const getPromotions = async (req, res) => {
           model: Product,
           as: 'product',
           attributes: ['id', 'name', 'pvp']
-        },
-        {
-          model: Unit, 
-          as: 'unit',
-          attributes: ['id', 'name', 'abbreviation']
         }
       ],
       limit: parseInt(limit),
@@ -79,11 +73,6 @@ export const getActivePromotions = async (req, res) => {
           model: Product,
           as: 'product',
           attributes: ['id', 'name', 'pvp']
-        },
-        {
-          model: Unit, 
-          as: 'unit',
-          attributes: ['id', 'name', 'abbreviation']
         }
       ]
     });
@@ -110,11 +99,6 @@ export const getPromotionById = async (req, res) => {
           model: Product,
           as: 'product',
           attributes: ['id', 'name', 'pvp']
-        },
-        {
-          model: Unit,
-          as: 'unit',
-          attributes: ['id', 'name', 'abbreviation']
         }
       ]
     });
@@ -144,7 +128,6 @@ export const createPromotion = async (req, res) => {
       name,
       description,
       product_id,
-      unit_id, // ← AGREGAR
       promotion_type,
       buy_quantity,
       get_quantity,
@@ -164,19 +147,10 @@ export const createPromotion = async (req, res) => {
       });
     }
 
-    const unit = await Unit.findByPk(unit_id);
-    if (!unit) {
-      return res.status(404).json({
-        success: false,
-        message: 'Unidad no encontrada'
-      });
-    }
-
     const promotion = await Promotion.create({
       name,
       description,
       product_id,
-      unit_id, 
       promotion_type,
       buy_quantity,
       get_quantity,
@@ -194,11 +168,6 @@ export const createPromotion = async (req, res) => {
           model: Product,
           as: 'product',
           attributes: ['id', 'name', 'pvp']
-        },
-        {
-          model: Unit, // ← AGREGAR
-          as: 'unit',
-          attributes: ['id', 'name', 'abbreviation']
         }
       ]
     });
@@ -230,26 +199,6 @@ export const updatePromotion = async (req, res) => {
       });
     }
 
-    if (updateData.unit_id) {
-      const unit = await Unit.findByPk(updateData.unit_id);
-      if (!unit) {
-        return res.status(404).json({
-          success: false,
-          message: 'Unidad no encontrada'
-        });
-      }
-    }
-
-    if (updateData.product_id) {
-      const product = await Product.findByPk(updateData.product_id);
-      if (!product) {
-        return res.status(404).json({
-          success: false,
-          message: 'Producto no encontrado'
-        });
-      }
-    }
-
     await promotion.update(updateData);
 
     const updatedPromotion = await Promotion.findByPk(id, {
@@ -258,11 +207,6 @@ export const updatePromotion = async (req, res) => {
           model: Product,
           as: 'product',
           attributes: ['id', 'name', 'pvp']
-        },
-        {
-          model: Unit, 
-          as: 'unit',
-          attributes: ['id', 'name', 'abbreviation']
         }
       ]
     });

@@ -27,7 +27,12 @@ import EditUser from './pages/User/EditUser';
 import UnitList from './pages/Units/UnitList';
 import ProductUnits from './pages/ProductUnit/ProductUnits';
 import Promotions from './pages/Promotion/Promotions';
-import ReportsPage from './pages/Report/ReportPage';
+import AuditLogList from './pages/AuditLog/AuditLogList';
+import RawMaterialList from './pages/RawMaterial/RawMaterialList';
+import RawMaterialForm from './pages/RawMaterial/RawMaterialForm';
+import ProductRecipe from './pages/Recipe/ProductRecipe';
+import ProductionList from './pages/Production/ProductionList';
+import ProductionCreate from './pages/Production/ProductionCreate';
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -40,11 +45,9 @@ function AppRoutes() {
       algorithm={isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm}
     >
       <Routes>
-        <Route 
-          path="/login" 
-          element={
-            isAuthenticated ? <Navigate to="/" replace /> : <Login />
-          } 
+        <Route
+          path="/login"
+          element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
         />
 
         <Route
@@ -69,7 +72,7 @@ function AppRoutes() {
           }
         />
 
-          <Route
+        <Route
           path="/newInvoice"
           element={
             <ProtectedRoute>
@@ -91,7 +94,18 @@ function AppRoutes() {
           }
         />
 
-           <Route
+        <Route
+          path="/audit-logs"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <AuditLogList />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/newProduct"
           element={
             <ProtectedRoute>
@@ -102,7 +116,7 @@ function AppRoutes() {
           }
         />
 
-          <Route
+        <Route
           path="/editProduct/:id"
           element={
             <ProtectedRoute>
@@ -112,7 +126,6 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-
 
         <Route
           path="/customers"
@@ -125,7 +138,7 @@ function AppRoutes() {
           }
         />
 
-          <Route
+        <Route
           path="/newCustomer"
           element={
             <ProtectedRoute>
@@ -147,8 +160,6 @@ function AppRoutes() {
           }
         />
 
-      
-
         <Route
           path="/users"
           element={
@@ -160,7 +171,7 @@ function AppRoutes() {
           }
         />
 
-         <Route
+        <Route
           path="/newUser"
           element={
             <ProtectedRoute>
@@ -171,7 +182,7 @@ function AppRoutes() {
           }
         />
 
-         <Route
+        <Route
           path="/editUser/:id"
           element={
             <ProtectedRoute>
@@ -193,7 +204,7 @@ function AppRoutes() {
           }
         />
 
-         <Route
+        <Route
           path="/editRole/:id"
           element={
             <ProtectedRoute>
@@ -215,7 +226,7 @@ function AppRoutes() {
           }
         />
 
-            <Route
+        <Route
           path="/units"
           element={
             <ProtectedRoute>
@@ -226,8 +237,7 @@ function AppRoutes() {
           }
         />
 
-
-          <Route
+        <Route
           path="/product-units"
           element={
             <ProtectedRoute>
@@ -237,8 +247,74 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/raw-materials"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <RawMaterialList />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
 
-           <Route
+        <Route
+          path="/raw-materials/new"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <RawMaterialForm />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/raw-materials/edit/:id"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <RawMaterialForm />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Rutas de Recetas */}
+        <Route
+          path="/products/:productId/recipe"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ProductRecipe />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Rutas de Producción */}
+        <Route
+          path="/productions"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ProductionList />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/productions/new"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ProductionCreate />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/promotions"
           element={
             <ProtectedRoute>
@@ -249,17 +325,6 @@ function AppRoutes() {
           }
         />
 
-
-    <Route
-          path="/reports"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <ReportsPage />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
 
 
         <Route path="*" element={<Navigate to="/" replace />} />

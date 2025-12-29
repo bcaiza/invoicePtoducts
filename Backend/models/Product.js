@@ -1,9 +1,9 @@
-import { DataTypes } from 'sequelize';
-import sequelize from '../src/config/database.js';
-import { v4 as uuidv4 } from 'uuid';
+import { DataTypes } from "sequelize";
+import sequelize from "../src/config/database.js";
+import { v4 as uuidv4 } from "uuid";
 
 const Product = sequelize.define(
-  'Product',
+  "Product",
   {
     id: {
       type: DataTypes.UUID,
@@ -24,7 +24,7 @@ const Product = sequelize.define(
     weight: {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: true,
-      comment: 'Weight in kg',
+      comment: "Weight in kg",
     },
     stock: {
       type: DataTypes.INTEGER,
@@ -40,28 +40,9 @@ const Product = sequelize.define(
     },
   },
   {
-    tableName: 'products',
+    tableName: "products",
     timestamps: true,
   }
 );
-
-Product.associate = (models) => {
-  Product.hasMany(models.InvoiceDetail, {
-    foreignKey: 'product_id',
-    as: 'invoice_details',
-  });
-};
-
-Product.associate = (models) => {
-  Product.belongsTo(models.Unit, {
-    foreignKey: 'base_unit_id',
-    as: 'baseUnit'
-  });
-  
-  Product.hasMany(models.ProductUnit, {
-    foreignKey: 'product_id',
-    as: 'ProductUnits'
-  });
-};
 
 export default Product;
