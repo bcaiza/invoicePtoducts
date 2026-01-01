@@ -9,43 +9,63 @@ import {
   getProductInventoryReport,
   getInvoiceProductsDetail
 } from '../controllers/reportController.js';
+import { authenticate, checkPermission } from '../middleware/permissions.js';
 
 const router = express.Router();
 
-// 📊 REPORTE 1: Ventas por período
-// GET /api/reports/sales
-// Query params: start_date, end_date, customer_id (opcionales)
-router.get('/sales', getSalesByPeriod);
 
-// 📈 REPORTE 2: Productos más vendidos
-// GET /api/reports/top-products
-// Query params: start_date, end_date, limit (opcionales)
-router.get('/top-products', getTopSellingProducts);
+router.get('/sales', 
+  authenticate, 
+  checkPermission('reports', 'view'),
+  getSalesByPeriod
+);
 
-// 🧾 REPORTE 3: Detalle completo de una factura
-// GET /api/reports/invoice/:invoice_id
-router.get('/invoice/:invoice_id', getInvoiceDetails);
 
-// 👥 REPORTE 4: Ventas por cliente
-// GET /api/reports/customers
-// Query params: start_date, end_date (opcionales)
-router.get('/customers', getSalesByCustomer);
+router.get('/top-products', 
+  authenticate, 
+  checkPermission('reports', 'view'),
+  getTopSellingProducts
+);
 
-// 📅 REPORTE 5: Resumen diario de ventas
-// GET /api/reports/daily
-// Query params: start_date, end_date (opcionales)
-router.get('/daily', getDailySalesSummary);
 
-// 💰 REPORTE 6: Ventas por forma de pago
-// GET /api/reports/payment-methods
-// Query params: start_date, end_date (opcionales)
-router.get('/payment-methods', getSalesByPaymentMethod);
+router.get('/invoice/:invoice_id', 
+  authenticate, 
+  checkPermission('reports', 'view'),
+  getInvoiceDetails
+);
 
-// 📦 REPORTE 7: Inventario y ventas de productos
-// GET /api/reports/inventory
-// Query params: low_stock_threshold (opcional, default: 10)
-router.get('/inventory', getProductInventoryReport);
 
-router.get('/invoice-products', getInvoiceProductsDetail);
+router.get('/customers', 
+  authenticate, 
+  checkPermission('reports', 'view'),
+  getSalesByCustomer
+);
+
+
+router.get('/daily', 
+  authenticate, 
+  checkPermission('reports', 'view'),
+  getDailySalesSummary
+);
+
+
+router.get('/payment-methods', 
+  authenticate, 
+  checkPermission('reports', 'view'),
+  getSalesByPaymentMethod
+);
+
+
+router.get('/inventory', 
+  authenticate, 
+  checkPermission('reports', 'view'),
+  getProductInventoryReport
+);
+
+router.get('/invoice-products', 
+  authenticate, 
+  checkPermission('reports', 'view'),
+  getInvoiceProductsDetail
+);
 
 export default router;

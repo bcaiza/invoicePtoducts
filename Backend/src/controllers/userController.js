@@ -8,7 +8,11 @@ export const getUsers = async (req, res) => {
     const users = await User.findAll({ 
       include: {
         model: Role,
-        include: Permission
+        as: 'role', // ✅ Agregar alias
+        include: [{
+          model: Permission,
+          as: 'permissions' // ✅ Agregar alias
+        }]
       },
       attributes: { exclude: ['password'] }, 
       order: [['createdAt', 'DESC']]
@@ -19,14 +23,17 @@ export const getUsers = async (req, res) => {
   }
 };
 
-
 export const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
     const user = await User.findByPk(id, { 
       include: {
         model: Role,
-        include: Permission
+        as: 'role', // ✅ Agregar alias
+        include: [{
+          model: Permission,
+          as: 'permissions' // ✅ Agregar alias
+        }]
       },
       attributes: { exclude: ['password'] }
     });
@@ -81,7 +88,11 @@ export const createUser = async (req, res) => {
     const createdUser = await User.findByPk(user.id, {
       include: {
         model: Role,
-        include: Permission
+        as: 'role', // ✅ Agregar alias
+        include: [{
+          model: Permission,
+          as: 'permissions' // ✅ Agregar alias
+        }]
       },
       attributes: { exclude: ['password'] }
     });
@@ -132,7 +143,11 @@ export const updateUser = async (req, res) => {
     const updatedUser = await User.findByPk(id, {
       include: {
         model: Role,
-        include: Permission
+        as: 'role', // ✅ Agregar alias
+        include: [{
+          model: Permission,
+          as: 'permissions' // ✅ Agregar alias
+        }]
       },
       attributes: { exclude: ['password'] }
     });
@@ -243,7 +258,10 @@ export const toggleUserStatus = async (req, res) => {
     await user.update({ active: !user.active });
 
     const updatedUser = await User.findByPk(id, {
-      include: Role,
+      include: {
+        model: Role,
+        as: 'role' // ✅ Agregar alias
+      },
       attributes: { exclude: ['password'] }
     });
 
@@ -264,7 +282,10 @@ export const getUsersByRole = async (req, res) => {
 
     const users = await User.findAll({
       where: { role_id: roleId },
-      include: Role,
+      include: {
+        model: Role,
+        as: 'role' // ✅ Agregar alias
+      },
       attributes: { exclude: ['password'] }
     });
 
@@ -280,7 +301,11 @@ export const getActiveUsers = async (req, res) => {
       where: { active: true },
       include: {
         model: Role,
-        include: Permission
+        as: 'role', // ✅ Agregar alias
+        include: [{
+          model: Permission,
+          as: 'permissions' // ✅ Agregar alias
+        }]
       },
       attributes: { exclude: ['password'] }
     });

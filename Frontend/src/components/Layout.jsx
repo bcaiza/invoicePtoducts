@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -16,6 +16,12 @@ import {
   Ruler,
   Box,
   Factory,
+  ChefHat,
+  BarChart,
+  ShoppingCart,
+  Warehouse,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
@@ -24,70 +30,160 @@ const Layout = ({ children }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [expandedMenus, setExpandedMenus] = useState({});
   const navigate = useNavigate();
   const location = useLocation();
 
   const menuItems = [
-    { path: "/", label: "Dashboard", icon: LayoutDashboard },
     {
-      path: "/invoices",
-      label: "Facturas",
-      icon: FileText,
-      module: "invoices",
+      label: "Ventas",
+      icon: ShoppingCart,
+      children: [
+        { path: "/", label: "Dashboard", icon: LayoutDashboard },
+        {
+          path: "/invoices",
+          label: "Facturas",
+          icon: FileText,
+          module: "invoices",
+        },
+        { 
+          path: "/customers", 
+          label: "Clientes", 
+          icon: Users, 
+          module: "customers" 
+        },
+        {
+          path: "/promotions",
+          label: "Promociones",
+          icon: Users,
+          module: "promotions",
+        },
+      ]
     },
     {
-      path: "/products",
-      label: "Productos",
-      icon: Package,
-      module: "products",
+      label: "Inventario",
+      icon: Warehouse,
+      children: [
+        {
+          path: "/products",
+          label: "Productos",
+          icon: Package,
+          module: "products",
+        },
+        { 
+          path: "/units", 
+          label: "Unidades", 
+          icon: Ruler, 
+          module: "units" 
+        },
+        {
+          path: "/product-units",
+          label: "Unidades de Producto",
+          icon: Ruler,
+          module: "product_units",
+        },
+        {
+          path: "/raw-materials",
+          label: "Materias Primas",
+          icon: Box,
+          module: "raw_materials",
+        },
+        {
+          path: "/recipes",
+          label: "Recetas de Productos",
+          icon: ChefHat,
+          module: "recipes",
+        },
+        {
+          path: "/productions",
+          label: "Producción",
+          icon: Factory,
+          module: "production",
+        },
+      ]
     },
-    { path: "/units", label: "Unidades", icon: Ruler, module: "units" },
     {
-      path: "/product-units",
-      label: "Unidades de Producto",
-      icon: Ruler,
+      label: "Reportes",
+      icon: BarChart,
+      children: [
+        { 
+          path: "/reports", 
+          label: "Reportes", 
+          icon: BarChart, 
+          module: "reports" 
+        },
+      ]
     },
     {
-      path: "/raw-materials",
-      label: "Materias Primas",
-      icon: Box,
-      module: "raw_materials",
-    },
-    {
-      path: "/productions",
-      label: "Producción",
-      icon: Factory,
-      module: "production",
-    },
-    {
-      path: "/promotions",
-      label: "Promociones",
-      icon: Users,
-      module: "promotion",
-    },
-    { path: "/customers", label: "Clientes", icon: Users, module: "customers" },
-    { path: "/reports", label: "Reportes", icon: Users, module: "reports" },
-    { path: "/users", label: "Usuarios", icon: UserCircle, module: "users" },
-    { path: "/roles", label: "Roles", icon: ShieldCheck, module: "users" },
-    {
-      path: "/audit-logs",
-      label: "Auditoria",
-      icon: ShieldCheck,
-      module: "audit",
+      label: "Administración",
+      icon: Settings,
+      children: [
+        { 
+          path: "/users", 
+          label: "Usuarios", 
+          icon: UserCircle, 
+          module: "users" 
+        },
+        { 
+          path: "/roles", 
+          label: "Roles", 
+          icon: ShieldCheck, 
+          module: "roles" 
+        },
+        {
+          path: "/audit-logs",
+          label: "Auditoría",
+          icon: ShieldCheck,
+          module: "audit",
+        },
+      ]
     },
   ];
 
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
+  useEffect(() => {
+    const activeMenu = menuItems.find(menu => 
+      menu.children?.some(child => 
+        location.pathname === child.path || 
+        (child.path !== "/" && location.pathname.startsWith(child.path))
+      )
+    );
+    if (activeMenu) {
+      setExpandedMenus(prev => ({
+        ...prev,
+        [activeMenu.label]: true
+      }));
+    }
+  }, [location.pathname]);
+
+  const toggleMenu = (menuLabel) => {
+    setExpandedMenus(prev => ({
+      ...prev,
+      [menuLabel]: !prev[menuLabel]
+    }));
   };
 
-  const currentMenuItem =
-    menuItems.find((item) => item.path === location.pathname) || menuItems[0];
+  const findCurrentMenuItem = () => {
+    for (const menu of menuItems) {
+      if (menu.children) {
+        const child = menu.children.find(item => 
+          location.pathname === item.path || 
+          (item.path !== "/" && location.pathname.startsWith(item.path))
+        );
+        if (child) return child;
+      } else {
+        if (location.pathname === menu.path || 
+            (menu.path !== "/" && location.pathname.startsWith(menu.path))) {
+          return menu;
+        }
+      }
+    }
+    return menuItems[0]?.children?.[0] || menuItems[0];
+  };
+
+  const currentMenuItem = findCurrentMenuItem();
 
   return (
     <div className="min-h-screen transition-colors duration-300 bg-slate-50 dark:bg-dark-950">
-      {/* Sidebar para desktop */}
       <aside className="fixed inset-y-0 left-0 hidden w-64 transition-colors duration-300 bg-white border-r md:flex md:flex-col dark:bg-dark-900 border-slate-200 dark:border-dark-800">
         <div className="p-6 border-b border-slate-200 dark:border-dark-800">
           <div className="flex items-center gap-3">
@@ -106,23 +202,56 @@ const Layout = ({ children }) => {
         </div>
 
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+          {menuItems.map((menu) => {
+            const Icon = menu.icon;
+            const isExpanded = expandedMenus[menu.label];
+            const hasActiveChild = menu.children?.some(child => 
+              location.pathname === child.path || 
+              (child.path !== "/" && location.pathname.startsWith(child.path))
+            );
 
             return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                  isActive
-                    ? "bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg"
-                    : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800"
-                }`}
-              >
-                <Icon size={20} />
-                <span className="font-medium">{item.label}</span>
-              </Link>
+              <div key={menu.label}>
+                <button
+                  onClick={() => toggleMenu(menu.label)}
+                  className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                    hasActiveChild
+                      ? "bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Icon size={20} />
+                    <span className="font-medium">{menu.label}</span>
+                  </div>
+                  {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                </button>
+                
+                {isExpanded && menu.children && (
+                  <div className="mt-1 ml-6 space-y-1">
+                    {menu.children.map((item) => {
+                      const ItemIcon = item.icon;
+                      const isActive = location.pathname === item.path || 
+                                     (item.path !== "/" && location.pathname.startsWith(item.path));
+
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${
+                            isActive
+                              ? "bg-gradient-to-r from-primary-400 to-primary-500 text-white shadow-md"
+                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-dark-700"
+                          }`}
+                        >
+                          <ItemIcon size={16} />
+                          <span className="text-sm font-medium">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </nav>
@@ -139,7 +268,7 @@ const Layout = ({ children }) => {
           </button>
 
           <button
-            onClick={handleLogout}
+            onClick={logout}
             className="flex items-center w-full gap-3 px-4 py-3 text-red-600 transition-all duration-200 rounded-xl dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
           >
             <LogOut size={20} />
@@ -148,7 +277,6 @@ const Layout = ({ children }) => {
         </div>
       </aside>
 
-      {/* Sidebar móvil */}
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-50 md:hidden bg-black/50 backdrop-blur-sm"
@@ -181,24 +309,57 @@ const Layout = ({ children }) => {
             </div>
 
             <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-              {menuItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
+              {menuItems.map((menu) => {
+                const Icon = menu.icon;
+                const isExpanded = expandedMenus[menu.label];
+                const hasActiveChild = menu.children?.some(child => 
+                  location.pathname === child.path || 
+                  (child.path !== "/" && location.pathname.startsWith(child.path))
+                );
 
                 return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setSidebarOpen(false)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                      isActive
-                        ? "bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg"
-                        : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800"
-                    }`}
-                  >
-                    <Icon size={20} />
-                    <span className="font-medium">{item.label}</span>
-                  </Link>
+                  <div key={menu.label}>
+                    <button
+                      onClick={() => toggleMenu(menu.label)}
+                      className={`w-full flex items-center justify-between gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                        hasActiveChild
+                          ? "bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-lg"
+                          : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-dark-800"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon size={20} />
+                        <span className="font-medium">{menu.label}</span>
+                      </div>
+                      {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+                    </button>
+                    
+                    {isExpanded && menu.children && (
+                      <div className="mt-1 ml-6 space-y-1">
+                        {menu.children.map((item) => {
+                          const ItemIcon = item.icon;
+                          const isActive = location.pathname === item.path || 
+                                         (item.path !== "/" && location.pathname.startsWith(item.path));
+
+                          return (
+                            <Link
+                              key={item.path}
+                              to={item.path}
+                              onClick={() => setSidebarOpen(false)}
+                              className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all duration-200 ${
+                                isActive
+                                  ? "bg-gradient-to-r from-primary-400 to-primary-500 text-white shadow-md"
+                                  : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-dark-700"
+                              }`}
+                            >
+                              <ItemIcon size={16} />
+                              <span className="text-sm font-medium">{item.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </nav>
@@ -215,7 +376,7 @@ const Layout = ({ children }) => {
               </button>
 
               <button
-                onClick={handleLogout}
+                onClick={logout}
                 className="flex items-center w-full gap-3 px-4 py-3 text-red-600 transition-all duration-200 rounded-xl dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
               >
                 <LogOut size={20} />
@@ -226,9 +387,7 @@ const Layout = ({ children }) => {
         </div>
       )}
 
-      {/* Contenido principal */}
       <div className="md:ml-64">
-        {/* Header */}
         <header className="sticky top-0 z-40 transition-colors duration-300 bg-white border-b dark:bg-dark-900 border-slate-200 dark:border-dark-800">
           <div className="px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between">
@@ -272,7 +431,6 @@ const Layout = ({ children }) => {
           </div>
         </header>
 
-        {/* Contenido */}
         <main className="p-4 sm:p-6 lg:p-8">{children}</main>
       </div>
     </div>

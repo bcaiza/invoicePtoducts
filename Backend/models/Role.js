@@ -1,7 +1,6 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../src/config/database.js';
 import { v4 as uuidv4 } from 'uuid';
-import Permission from './Permission.js';
 
 const Role = sequelize.define(
   'Role',
@@ -26,7 +25,18 @@ const Role = sequelize.define(
   }
 );
 
-Role.hasMany(Permission, { foreignKey: 'role_id', onDelete: 'CASCADE' });
-Permission.belongsTo(Role, { foreignKey: 'role_id' });
+Role.associate = (models) => {
+  // ✅ Agregar alias 'permissions' en minúscula
+  Role.hasMany(models.Permission, { 
+    foreignKey: 'role_id', 
+    as: 'permissions', // ✅ IMPORTANTE: agregar esto
+    onDelete: 'CASCADE' 
+  });
+  
+  Role.hasMany(models.User, { 
+    foreignKey: 'role_id',
+    as: 'users' // ✅ Opcional pero recomendado
+  });
+};
 
 export default Role;

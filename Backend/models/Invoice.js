@@ -73,7 +73,10 @@ Invoice.associate = (models) => {
     foreignKey: 'customer_id',
     as: 'customer',
   });
-
+  Invoice.belongsTo(models.User, {
+    foreignKey: 'user_id',
+    as: 'user',
+  });
   Invoice.hasMany(models.InvoiceDetail, {
     foreignKey: 'invoice_id',
     as: 'details',

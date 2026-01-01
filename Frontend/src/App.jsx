@@ -30,9 +30,11 @@ import Promotions from './pages/Promotion/Promotions';
 import AuditLogList from './pages/AuditLog/AuditLogList';
 import RawMaterialList from './pages/RawMaterial/RawMaterialList';
 import RawMaterialForm from './pages/RawMaterial/RawMaterialForm';
-import ProductRecipe from './pages/Recipe/ProductRecipe';
 import ProductionList from './pages/Production/ProductionList';
 import ProductionCreate from './pages/Production/ProductionCreate';
+import ReportsPage from './pages/Report/ReportPage';
+import RecipeList from './pages/Recipe/RecipeList';
+import RecipeForm from './pages/Recipe/ReceipeForm';
 
 function AppRoutes() {
   const { isAuthenticated } = useAuth();
@@ -280,19 +282,8 @@ function AppRoutes() {
           }
         />
 
-        {/* Rutas de Recetas */}
-        <Route
-          path="/products/:productId/recipe"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <ProductRecipe />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
+      
 
-        {/* Rutas de Producción */}
         <Route
           path="/productions"
           element={
@@ -325,7 +316,40 @@ function AppRoutes() {
           }
         />
 
+          <Route
+          path="/reports"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ReportsPage />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
 
+   <Route
+          path="/recipes"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <RecipeList />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+         <Route
+          path="/recipes/edit/:productId"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <RecipeForm />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+
+                  
 
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

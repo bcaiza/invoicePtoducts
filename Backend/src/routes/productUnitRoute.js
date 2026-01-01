@@ -8,16 +8,45 @@ import {
   deleteProductUnit,
   bulkCreateProductUnits
 } from '../controllers/productUnitController.js';
+import { authenticate, checkPermission } from '../middleware/permissions.js';
 
 const router = express.Router();
 
 
-router.get('/', getProductUnits);
-router.get('/:id', getProductUnitById);
-router.get('/product/:productId', getProductUnitsByProduct);
-router.post('/', createProductUnit);
-router.post('/bulk', bulkCreateProductUnits);
-router.put('/:id', updateProductUnit);
-router.delete('/:id', deleteProductUnit);
+router.get('/', 
+  authenticate, 
+  checkPermission('product_units', 'view'),
+  getProductUnits
+);
+router.get('/:id', 
+  authenticate, 
+  checkPermission('product_units', 'view'),
+  getProductUnitById
+);
+router.get('/product/:productId', 
+  authenticate, 
+  checkPermission('product_units', 'view'),
+  getProductUnitsByProduct
+);
+router.post('/', 
+  authenticate, 
+  checkPermission('product_units', 'create'),
+  createProductUnit
+);
+router.post('/bulk', 
+  authenticate, 
+  checkPermission('product_units', 'create'),
+  bulkCreateProductUnits
+);
+router.put('/:id', 
+  authenticate, 
+  checkPermission('product_units', 'edit'),
+  updateProductUnit
+);
+router.delete('/:id', 
+  authenticate, 
+  checkPermission('product_units', 'delete'),
+  deleteProductUnit
+);
 
 export default router;

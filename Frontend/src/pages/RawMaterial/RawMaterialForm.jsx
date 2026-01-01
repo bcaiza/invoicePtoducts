@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Input, InputNumber, Button, Card, message, Switch } from 'antd';
+import { Form, Input, Button, Card, message, Switch, Space } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import rawMaterialService from '../../services/rawMaterialService';
 
@@ -47,89 +47,62 @@ const RawMaterialForm = () => {
   };
 
   return (
-    <div style={{ padding: '24px', maxWidth: '800px', margin: '0 auto' }}>
-      <Card
-        title={isEdit ? 'Editar Materia Prima' : 'Nueva Materia Prima'}
-        extra={
-          <Button onClick={() => navigate('/raw-materials')}>
-            Volver
-          </Button>
-        }
+    <Card 
+      title={`${isEdit ? 'Editar' : 'Nueva'} Materia Prima`}
+      extra={<Button onClick={() => navigate('/raw-materials')}>Volver</Button>}
+    >
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+        initialValues={{ active: true }}
       >
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleSubmit}
-          initialValues={{ active: true, stock: 0, min_stock: 0, unit_cost: 0 }}
+        <Form.Item
+          label="Nombre"
+          name="name"
+          rules={[
+            { required: true, message: 'Ingrese el nombre' },
+            { min: 3, message: 'El nombre debe tener al menos 3 caracteres' }
+          ]}
         >
-          <Form.Item
-            name="name"
-            label="Nombre"
-            rules={[{ required: true, message: 'Ingrese el nombre' }]}
-          >
-            <Input placeholder="Ej: Harina de trigo" />
-          </Form.Item>
+          <Input 
+            placeholder="Nombre de la materia prima" 
+            size="large"
+          />
+        </Form.Item>
 
-          <Form.Item
-            name="unit_of_measure"
-            label="Unidad de Medida"
-            rules={[{ required: true, message: 'Ingrese la unidad' }]}
-          >
-            <Input placeholder="Ej: kg, litros, unidades" />
-          </Form.Item>
+        <Form.Item
+          label="Descripción"
+          name="description"
+        >
+          <Input.TextArea 
+            rows={4}
+            placeholder="Descripción opcional de la materia prima"
+            showCount
+            maxLength={500}
+          />
+        </Form.Item>
 
-          <Form.Item
-            name="stock"
-            label="Stock Inicial"
-            rules={[{ required: true, message: 'Ingrese el stock' }]}
-          >
-            <InputNumber
-              min={0}
-              step={0.01}
-              style={{ width: '100%' }}
-              placeholder="0.00"
-            />
-          </Form.Item>
+        <Form.Item
+          label="Activo"
+          name="active"
+          valuePropName="checked"
+        >
+          <Switch />
+        </Form.Item>
 
-          <Form.Item
-            name="min_stock"
-            label="Stock Mínimo (Alerta)"
-            rules={[{ required: true, message: 'Ingrese el stock mínimo' }]}
-          >
-            <InputNumber
-              min={0}
-              step={0.01}
-              style={{ width: '100%' }}
-              placeholder="0.00"
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="unit_cost"
-            label="Costo Unitario"
-            rules={[{ required: true, message: 'Ingrese el costo' }]}
-          >
-            <InputNumber
-              min={0}
-              step={0.01}
-              style={{ width: '100%' }}
-              placeholder="0.00"
-              prefix="$"
-            />
-          </Form.Item>
-
-          <Form.Item name="active" label="Estado" valuePropName="checked">
-            <Switch checkedChildren="Activo" unCheckedChildren="Inactivo" />
-          </Form.Item>
-
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} block>
+        <Form.Item>
+          <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
+            <Button onClick={() => navigate('/raw-materials')}>
+              Cancelar
+            </Button>
+            <Button type="primary" htmlType="submit" loading={loading} size="large">
               {isEdit ? 'Actualizar' : 'Crear'} Materia Prima
             </Button>
-          </Form.Item>
-        </Form>
-      </Card>
-    </div>
+          </Space>
+        </Form.Item>
+      </Form>
+    </Card>
   );
 };
 

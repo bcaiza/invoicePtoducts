@@ -19,35 +19,35 @@ const router = express.Router();
 router.get(
   '/',
   authenticate,
- // checkPermission('units', 'view'),
+  checkPermission('units', 'view'),
   getUnits
 );
 
 router.get(
   '/:id',
   authenticate,
-  //checkPermission('units', 'view'),
+  checkPermission('units', 'view'),
   getUnitById
 );
 
 router.post(
   '/',
   authenticate,
- // checkPermission('units', 'create'),
+  checkPermission('units', 'create'),
   createUnit
 );
 
 router.put(
   '/:id',
   authenticate,
-  //checkPermission('units', 'edit'),
+  checkPermission('units', 'edit'),
   updateUnit
 );
 
 router.delete(
   '/:id',
   authenticate,
-  //checkPermission('units', 'delete'),
+  checkPermission('units', 'delete'),
   deleteUnit
 );
 
@@ -55,21 +55,21 @@ router.delete(
 router.get(
   '/product/:product_id',
   authenticate,
-  //checkPermission('products', 'view'),
+  checkPermission('units', 'view'),
   getProductUnits
 );
 
 router.post(
   '/product/:product_id/configure',
   authenticate,
-  //checkPermission('products', 'edit'),
+  checkPermission('units', 'edit'),
   configureProductUnits
 );
 
 router.get(
   '/product/:product_id/conversions',
   authenticate,
-  ///checkPermission('products', 'view'),
+  checkPermission('units', 'view'),
   getProductConversionTable
 );
 
@@ -77,12 +77,14 @@ router.get(
 router.post(
   '/product/:product_id/convert',
   authenticate,
+  checkPermission('units', 'edit'),
   convertProductUnits
 );
 
 router.post(
   '/convert',
   authenticate,
+  checkPermission('units', 'edit'),
   convertGlobalUnits
 );
 

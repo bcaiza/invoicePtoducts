@@ -1,7 +1,6 @@
 import { DataTypes } from 'sequelize';
 import sequelize from '../src/config/database.js';
 import { v4 as uuidv4 } from 'uuid';
-import Role from './Role.js';
 
 const User = sequelize.define(
   'User',
@@ -28,6 +27,17 @@ const User = sequelize.define(
       type: DataTypes.BOOLEAN,
       defaultValue: true,
     },
+    // ✅ AGREGAR ESTE CAMPO
+    role_id: {
+      type: DataTypes.UUID,
+      allowNull: true, // o false si quieres que sea obligatorio
+      references: {
+        model: 'roles',
+        key: 'id'
+      },
+      onDelete: 'SET NULL',
+      onUpdate: 'CASCADE'
+    }
   },
   {
     tableName: 'users',
@@ -35,7 +45,10 @@ const User = sequelize.define(
   }
 );
 
-User.belongsTo(Role, { foreignKey: 'role_id' });
-Role.hasMany(User, { foreignKey: 'role_id' });
+User.associate = (models) => {
+  User.belongsTo(models.Role, { foreignKey: 'role_id', as: 'role' });
+  User.hasMany(models.Invoice, { foreignKey: 'user_id', as: 'invoices' });
+  User.hasMany(models.Production, { foreignKey: 'user_id', as: 'productions' });
+};
 
 export default User;

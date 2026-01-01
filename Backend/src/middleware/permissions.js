@@ -58,10 +58,12 @@ export const checkPermission = (module, action) => {
 
       const permission = permissions.find(perm => perm.module === module);
 
-      
-      //console.log("llegue")
-     // console.log('Verificando permiso para módulo:', module, 'acción:', action);
-    //  console.log('Permisos del usuario:', permissions);
+      // ✅ Descomenta estos logs
+      console.log("=== DEBUG PERMISOS ===");
+      console.log('Módulo solicitado:', module);
+      console.log('Acción solicitada:', action);
+      console.log('Permisos en token:', JSON.stringify(permissions, null, 2));
+      console.log('Permiso encontrado:', permission);
 
       if (!permission) {
         return res.status(403).json({

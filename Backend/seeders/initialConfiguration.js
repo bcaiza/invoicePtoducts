@@ -6,7 +6,21 @@ import sequelize from "../config/database.js";
 import bcrypt from "bcryptjs";
 import AuditLog from "../models/AuditLog.js";
 
-const MODULES = ["users", "customers", "products", "invoices", "audit"];
+// ✅ Módulos sin duplicados y organizados
+const MODULES = [
+  "users",
+  "customers",
+  "products",
+  "invoices",
+  "production",
+  "recipes",
+  "raw_materials",
+  "promotions",
+  "product_units",
+  "reports",
+  "units",
+  "roles"
+];
 
 const initializeDatabase = async () => {
   try {
@@ -15,6 +29,7 @@ const initializeDatabase = async () => {
     await AuditLog.sync();
     console.log("✅ Audit logs table synchronized");
 
+    // Crear consumidor final
     const existingConsumer = await Customer.findOne({
       where: { identification_type: "final_consumer" },
     });
@@ -31,6 +46,7 @@ const initializeDatabase = async () => {
       console.log("✅ Final consumer already exists");
     }
 
+    // Crear rol Admin
     let adminRole = await Role.findOne({
       where: { name: "Admin" },
     });
@@ -41,6 +57,7 @@ const initializeDatabase = async () => {
         description: "Administrador con acceso completo al sistema",
       });
 
+      // Crear permisos completos para todos los módulos
       const permissions = MODULES.map((module) => ({
         module,
         can_view: true,
@@ -50,10 +67,8 @@ const initializeDatabase = async () => {
         role_id: adminRole.id,
       }));
 
-      await Permission.bulkCreate(permissions);
-
-      // Crear permiso específico de solo lectura para auditoría
-      await Permission.create({
+      // Agregar permiso de auditoría (solo lectura)
+      permissions.push({
         module: "audit",
         can_view: true,
         can_create: false,
@@ -62,11 +77,14 @@ const initializeDatabase = async () => {
         role_id: adminRole.id,
       });
 
+      await Permission.bulkCreate(permissions);
+
       console.log("✅ Admin role created successfully with all permissions");
     } else {
       console.log("✅ Admin role already exists");
     }
 
+    // Crear usuario Admin
     const existingAdmin = await User.findOne({
       where: { email: "boriscaiza04@gmail.com" },
     });

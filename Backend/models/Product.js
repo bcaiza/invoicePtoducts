@@ -45,4 +45,13 @@ const Product = sequelize.define(
   }
 );
 
+Product.associate = (models) => {
+  Product.belongsTo(models.Unit, { foreignKey: 'base_unit_id', as: 'baseUnit' });
+  Product.hasMany(models.ProductUnit, { foreignKey: 'product_id', as: 'ProductUnits' });
+  Product.hasMany(models.InvoiceDetail, { foreignKey: 'product_id', as: 'invoiceDetails' });
+  Product.hasMany(models.ProductRecipe, { foreignKey: 'product_id', as: 'recipes' });
+  Product.hasMany(models.Production, { foreignKey: 'product_id', as: 'productions' });
+  Product.hasMany(models.Promotion, { foreignKey: 'product_id', as: 'promotions' });
+};
+
 export default Product;

@@ -33,7 +33,6 @@ const Promotion = sequelize.define(
     promotion_type: {
       type: DataTypes.ENUM('buy_x_get_y', 'percentage_discount', 'fixed_discount'),
       allowNull: false,
-      comment: 'Tipo: compra X lleva Y, descuento %, descuento fijo',
     },
     buy_quantity: {
       type: DataTypes.INTEGER,

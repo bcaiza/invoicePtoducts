@@ -14,37 +14,37 @@ const router = express.Router();
 
 router.get('/', 
   authenticate, 
-  checkPermission('users', 'view'),
+  checkPermission('roles', 'view'),
   getRoles
 );
 
 router.get('/:id/permissions', 
   authenticate, 
-  checkPermission('users', 'view'),
+  checkPermission('roles', 'view'),
   getRolePermissions
 );
 
 router.get('/:id', 
   authenticate, 
-  checkPermission('users', 'view'),
+  checkPermission('roles', 'view'),
   getRoleById
 );
 
 router.post('/', 
   authenticate, 
-  checkPermission('users', 'create'),
+  checkPermission('roles', 'create'),
   createRole
 );
 
 router.put('/:id', 
   authenticate, 
-  checkPermission('users', 'edit'),
+  checkPermission('roles', 'edit'),
   updateRole
 );
 
 router.put('/:id/permissions', 
   authenticate, 
-  checkPermission('users', 'edit'),
+  checkPermission('roles', 'edit'),
   updateRolePermissions
 );
 

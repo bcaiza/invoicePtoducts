@@ -9,9 +9,15 @@ const MODULES = [
   { key: 'roles', name: 'Roles' },
   { key: 'customers', name: 'Clientes' },
   { key: 'products', name: 'Productos' },
-  { key: 'sales', name: 'Facturas' },
-  { key: 'inventory', name: 'Inventario' },
-  { key: 'reports', name: 'Reportes' }
+  { key: 'invoices', name: 'Facturas' },
+  { key: 'production', name: 'Producción' },
+  { key: 'raw_materials', name: 'Materias Primas' },
+  { key: 'recipes', name: 'Recetas' },
+  { key: 'product_units', name: 'Unidades de Producto' },
+  { key: 'promotions', name: 'Promociones' },
+  { key: 'units', name: 'Unidades' },
+  { key: 'reports', name: 'Reportes' },
+  { key: 'audit', name: 'Auditoría' }
 ];
 
 const RoleForm = ({ form, initialData, onFinish, loading }) => {

@@ -105,10 +105,9 @@ Unit.convert = async function(value, fromUnitId, toUnitId) {
 
 
 Unit.associate = (models) => {
-  Unit.hasMany(models.ProductUnit, {
-    foreignKey: 'unit_id',
-    as: 'ProductUnits'
-  });
+  Unit.hasMany(models.Product, { foreignKey: 'base_unit_id', as: 'products' });
+  Unit.hasMany(models.ProductUnit, { foreignKey: 'unit_id', as: 'productUnits' });
+  Unit.hasMany(models.InvoiceDetail, { foreignKey: 'unit_id', as: 'invoiceDetails' });
 };
 
 

@@ -62,7 +62,7 @@ async function syncDatabase() {
     await models.Invoice.sync({ alter: true });
     await models.InvoiceDetail.sync({ alter: true });
 
-    //await models.Promotion.sync({ alter: true });
+    await models.Promotion.sync({ alter: true });
     await models.AuditLog.sync({ alter: true });
     
     console.log('🟢 Database synced');

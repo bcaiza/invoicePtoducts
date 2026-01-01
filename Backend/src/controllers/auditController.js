@@ -1,4 +1,5 @@
 import AuditLog from '../../models/AuditLog.js';
+import sequelize from '../../config/database.js'; // ✅ Agregar esta importación
 import { Op } from 'sequelize';
 
 export const getAuditLogs = async (req, res) => {
@@ -63,7 +64,8 @@ export const getAuditStats = async (req, res) => {
         'action',
         [sequelize.fn('COUNT', sequelize.col('id')), 'count']
       ],
-      group: ['action']
+      group: ['action'],
+      raw: true // ✅ Agregar esto para obtener datos planos
     });
 
     const byEntity = await AuditLog.findAll({
@@ -71,7 +73,8 @@ export const getAuditStats = async (req, res) => {
         'entity_type',
         [sequelize.fn('COUNT', sequelize.col('id')), 'count']
       ],
-      group: ['entity_type']
+      group: ['entity_type'],
+      raw: true // ✅ Agregar esto para obtener datos planos
     });
 
     res.json({

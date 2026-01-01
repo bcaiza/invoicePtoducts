@@ -4,7 +4,10 @@ import Permission from '../../models/Permission.js';
 export const getRoles = async (req, res) => {
   try {
     const roles = await Role.findAll({ 
-      include: Permission,
+      include: [{
+        model: Permission,
+        as: 'permissions' // ✅ Agregar alias
+      }],
       order: [['createdAt', 'DESC']]
     });
     res.json(roles);
@@ -17,7 +20,10 @@ export const getRoleById = async (req, res) => {
   try {
     const { id } = req.params;
     const role = await Role.findByPk(id, { 
-      include: Permission 
+      include: [{
+        model: Permission,
+        as: 'permissions' // ✅ Agregar alias
+      }]
     });
 
     if (!role) {
@@ -46,14 +52,23 @@ export const createRole = async (req, res) => {
 
     const role = await Role.create(
       { 
-        name, 
-        Permissions: permissions || [] 
+        name,
+        description,
+        permissions: permissions || [] // ✅ Cambiar de Permissions a permissions (minúscula)
       },
-      { include: [Permission] }
+      { 
+        include: [{
+          model: Permission,
+          as: 'permissions' // ✅ Agregar alias
+        }]
+      }
     );
 
     const createdRole = await Role.findByPk(role.id, { 
-      include: [Permission] 
+      include: [{
+        model: Permission,
+        as: 'permissions' // ✅ Agregar alias
+      }]
     });
 
     res.status(201).json(createdRole);
@@ -99,7 +114,12 @@ export const updateRole = async (req, res) => {
       }
     }
 
-    const updatedRole = await Role.findByPk(id, { include: Permission });
+    const updatedRole = await Role.findByPk(id, { 
+      include: [{
+        model: Permission,
+        as: 'permissions' // ✅ Agregar alias
+      }]
+    });
 
     res.json(updatedRole);
   } catch (error) {
@@ -144,7 +164,6 @@ export const getRolePermissions = async (req, res) => {
     res.status(500).json({ message: 'Error al obtener permisos', error: error.message });
   }
 };
-
 
 export const updateRolePermissions = async (req, res) => {
   try {

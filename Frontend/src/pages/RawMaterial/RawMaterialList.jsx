@@ -8,17 +8,11 @@ import {
   Space,
   Card,
   Row,
-  Col,
-  Modal,
-  Form,
-  InputNumber,
-  Select
+  Col
 } from 'antd';
 import {
   PlusOutlined,
-  EditOutlined,
-  PlusCircleOutlined,
-  WarningOutlined
+  EditOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import rawMaterialService from '../../services/rawMaterialService';
@@ -35,11 +29,6 @@ const RawMaterialList = () => {
     total: 0
   });
   const [searchText, setSearchText] = useState('');
-  const [stockModal, setStockModal] = useState({
-    visible: false,
-    rawMaterial: null
-  });
-  const [form] = Form.useForm();
 
   useEffect(() => {
     loadRawMaterials();
@@ -72,82 +61,19 @@ const RawMaterialList = () => {
     loadRawMaterials(newPagination.current, newPagination.pageSize);
   };
 
-  const showStockModal = (record) => {
-    setStockModal({ visible: true, rawMaterial: record });
-    form.setFieldsValue({ operation: 'add', quantity: 0 });
-  };
-
-  const handleUpdateStock = async (values) => {
-    try {
-      await rawMaterialService.updateStock(stockModal.rawMaterial.id, values);
-      message.success('Stock actualizado correctamente');
-      setStockModal({ visible: false, rawMaterial: null });
-      form.resetFields();
-      loadRawMaterials(pagination.current, pagination.pageSize);
-    } catch (error) {
-      message.error(error.response?.data?.message || 'Error al actualizar stock');
-    }
-  };
-
   const columns = [
     {
       title: 'Nombre',
       dataIndex: 'name',
       key: 'name',
-      fixed: 'left',
-      width: 250,
+      width: 400,
       render: (text) => <strong>{text}</strong>
-    },
-    {
-      title: 'Stock',
-      dataIndex: 'stock',
-      key: 'stock',
-      width: 150,
-      render: (stock, record) => {
-        const isLowStock = parseFloat(stock) <= parseFloat(record.min_stock);
-        return (
-          <Space>
-            <Tag color={isLowStock ? 'red' : 'green'} icon={isLowStock && <WarningOutlined />}>
-              {parseFloat(stock).toFixed(2)} {record.unit_of_measure}
-            </Tag>
-            <Button
-              icon={<PlusCircleOutlined />}
-              size="small"
-              type="dashed"
-              onClick={() => showStockModal(record)}
-            >
-              Añadir
-            </Button>
-          </Space>
-        );
-      }
-    },
-    {
-      title: 'Stock Mínimo',
-      dataIndex: 'min_stock',
-      key: 'min_stock',
-      width: 120,
-      render: (minStock, record) => 
-        `${parseFloat(minStock).toFixed(2)} ${record.unit_of_measure}`
-    },
-    {
-      title: 'Costo Unitario',
-      dataIndex: 'unit_cost',
-      key: 'unit_cost',
-      width: 120,
-      render: (cost) => `$${parseFloat(cost).toFixed(2)}`
-    },
-    {
-      title: 'Unidad',
-      dataIndex: 'unit_of_measure',
-      key: 'unit_of_measure',
-      width: 100
     },
     {
       title: 'Estado',
       dataIndex: 'active',
       key: 'active',
-      width: 100,
+      width: 150,
       render: (active) => (
         <Tag color={active ? 'green' : 'red'}>
           {active ? 'Activo' : 'Inactivo'}
@@ -155,9 +81,19 @@ const RawMaterialList = () => {
       )
     },
     {
+      title: 'Fecha de Creación',
+      dataIndex: 'createdAt',
+      key: 'createdAt',
+      width: 200,
+      render: (date) => new Date(date).toLocaleDateString('es-ES', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    },
+    {
       title: 'Acciones',
       key: 'actions',
-      fixed: 'right',
       width: 100,
       render: (_, record) => (
         <Button
@@ -190,12 +126,6 @@ const RawMaterialList = () => {
           <Col span={12} style={{ textAlign: 'right' }}>
             <Space>
               <Button
-                type="default"
-                onClick={() => navigate('/raw-materials/low-stock')}
-              >
-                Ver Stock Bajo
-              </Button>
-              <Button
                 type="primary"
                 icon={<PlusOutlined />}
                 size="large"
@@ -216,67 +146,8 @@ const RawMaterialList = () => {
           loading={loading}
           pagination={pagination}
           onChange={handleTableChange}
-          scroll={{ x: 1200 }}
         />
       </Card>
-
-      <Modal
-        title={`Actualizar Stock - ${stockModal.rawMaterial?.name}`}
-        open={stockModal.visible}
-        onCancel={() => {
-          setStockModal({ visible: false, rawMaterial: null });
-          form.resetFields();
-        }}
-        footer={null}
-      >
-        <Form form={form} onFinish={handleUpdateStock} layout="vertical">
-          <Form.Item label="Stock actual">
-            <strong>
-              {parseFloat(stockModal.rawMaterial?.stock || 0).toFixed(2)}{' '}
-              {stockModal.rawMaterial?.unit_of_measure}
-            </strong>
-          </Form.Item>
-
-          <Form.Item
-            name="operation"
-            label="Operación"
-            rules={[{ required: true, message: 'Seleccione una operación' }]}
-          >
-            <Select>
-              <Select.Option value="add">Añadir</Select.Option>
-              <Select.Option value="subtract">Restar</Select.Option>
-              <Select.Option value="set">Establecer</Select.Option>
-            </Select>
-          </Form.Item>
-
-          <Form.Item
-            name="quantity"
-            label="Cantidad"
-            rules={[{ required: true, message: 'Ingrese la cantidad' }]}
-          >
-            <InputNumber
-              min={0}
-              step={0.01}
-              style={{ width: '100%' }}
-              placeholder="0.00"
-            />
-          </Form.Item>
-
-          <Form.Item>
-            <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-              <Button onClick={() => {
-                setStockModal({ visible: false, rawMaterial: null });
-                form.resetFields();
-              }}>
-                Cancelar
-              </Button>
-              <Button type="primary" htmlType="submit">
-                Actualizar
-              </Button>
-            </Space>
-          </Form.Item>
-        </Form>
-      </Modal>
     </div>
   );
 };

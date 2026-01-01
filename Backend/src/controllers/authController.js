@@ -50,7 +50,11 @@ export const register = async (req, res) => {
     const createdUser = await User.findByPk(user.id, {
       include: {
         model: Role,
-        include: Permission
+        as: 'role', // ✅ Agregar alias
+        include: [{
+          model: Permission,
+          as: 'permissions' // ✅ Agregar alias
+        }]
       },
       attributes: { exclude: ['password'] }
     });
@@ -59,7 +63,8 @@ export const register = async (req, res) => {
       { 
         id: user.id, 
         email: user.email,
-        role_id: user.role_id 
+        role_id: user.role_id,
+        permissions: createdUser.role?.permissions || [] // ✅ Usar alias
       },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
@@ -72,6 +77,7 @@ export const register = async (req, res) => {
     });
 
   } catch (error) {
+    console.error('Error en register:', error);
     res.status(500).json({ 
       message: 'Error al registrar el usuario', 
       error: error.message 
@@ -82,6 +88,7 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
+    console.log("Datos de login recibidos:", { email });
 
     if (!email || !password) {
       return res.status(400).json({ 
@@ -89,13 +96,22 @@ export const login = async (req, res) => {
       });
     }
 
+    // ✅ Corregir los includes con aliases
     const user = await User.findOne({ 
       where: { email },
       include: {
         model: Role,
-        include: Permission
+        as: 'role', // ✅ Usar alias definido en el modelo
+        include: [{
+          model: Permission,
+          as: 'permissions' // ✅ Usar alias si está definido en Role
+        }]
       }
     });
+
+    console.log("Usuario encontrado:", user ? 'Sí' : 'No');
+    console.log("Rol del usuario:", user?.role);
+    console.log("Permisos del usuario:", user?.role?.permissions);
 
     if (!user) {
       return res.status(401).json({ 
@@ -116,12 +132,21 @@ export const login = async (req, res) => {
       });
     }
 
+    // ✅ Usar los alias correctos
+    const permissions = user.role?.permissions || [];
+
     const token = jwt.sign(
       { 
         id: user.id, 
         email: user.email,
         role_id: user.role_id,
-        permissions: user.Role?.Permissions || []
+        permissions: permissions.map(p => ({
+          module: p.module,
+          can_view: p.can_view,
+          can_create: p.can_create,
+          can_edit: p.can_edit,
+          can_delete: p.can_delete
+        }))
       },
       process.env.JWT_SECRET || 'your-secret-key',
       { expiresIn: '24h' }
@@ -133,7 +158,7 @@ export const login = async (req, res) => {
       email: user.email,
       role_id: user.role_id,
       active: user.active,
-      Role: user.Role,
+      role: user.role, // ✅ Cambiar de Role a role
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     };
@@ -145,6 +170,7 @@ export const login = async (req, res) => {
     });
 
   } catch (error) {
+    console.error('Error en login:', error);
     res.status(500).json({ 
       message: 'Error al iniciar sesión', 
       error: error.message 
@@ -165,7 +191,11 @@ export const verifyToken = async (req, res) => {
     const user = await User.findByPk(decoded.id, {
       include: {
         model: Role,
-        include: Permission
+        as: 'role', // ✅ Usar alias
+        include: [{
+          model: Permission,
+          as: 'permissions' // ✅ Usar alias
+        }]
       },
       attributes: { exclude: ['password'] }
     });
@@ -193,4 +223,3 @@ export const verifyToken = async (req, res) => {
     });
   }
 };
-

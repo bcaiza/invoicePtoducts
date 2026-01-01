@@ -11,87 +11,23 @@ import AuditLog from './AuditLog.js';
 import RawMaterial from './RawMaterial.js';
 import ProductRecipe from './ProductRecipe.js';
 import Production from './Production.js';
+import Promotion from './Promotion.js';
 
-// Relaciones Role - Permission
-Role.hasMany(Permission, { foreignKey: 'role_id' });
-Permission.belongsTo(Role, { foreignKey: 'role_id' });
-
-// Relaciones User - Role
-User.belongsTo(Role, { foreignKey: 'role_id' });
-Role.hasMany(User, { foreignKey: 'role_id' });
-
-// Relaciones Product - Unit
-Product.belongsTo(Unit, { foreignKey: 'base_unit_id', as: 'baseUnit' });
-Unit.hasMany(Product, { foreignKey: 'base_unit_id', as: 'products' });
-
-// Relaciones ProductUnit
-Product.hasMany(ProductUnit, { foreignKey: 'product_id', as: 'ProductUnits' });
-ProductUnit.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
-
-Unit.hasMany(ProductUnit, { foreignKey: 'unit_id', as: 'productUnits' });
-ProductUnit.belongsTo(Unit, { foreignKey: 'unit_id', as: 'unit' });
-
-// Relaciones Invoice
-Invoice.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });
-Customer.hasMany(Invoice, { foreignKey: 'customer_id', as: 'invoices' });
-
-Invoice.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
-User.hasMany(Invoice, { foreignKey: 'user_id', as: 'invoices' });
-
-// Relaciones InvoiceDetail
-Invoice.hasMany(InvoiceDetail, { foreignKey: 'invoice_id', as: 'details' });
-InvoiceDetail.belongsTo(Invoice, { foreignKey: 'invoice_id', as: 'invoice' });
-
-InvoiceDetail.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
-Product.hasMany(InvoiceDetail, { foreignKey: 'product_id', as: 'invoiceDetails' });
-
-InvoiceDetail.belongsTo(Unit, { foreignKey: 'unit_id', as: 'unit' });
-Unit.hasMany(InvoiceDetail, { foreignKey: 'unit_id', as: 'invoiceDetails' });
-
-// ============================================
-// Relaciones RawMaterial - ProductRecipe
-// ============================================
-RawMaterial.hasMany(ProductRecipe, { 
-  foreignKey: 'raw_material_id', 
-  as: 'recipes' 
-});
-ProductRecipe.belongsTo(RawMaterial, { 
-  foreignKey: 'raw_material_id', 
-  as: 'rawMaterial' 
-});
-
-// ============================================
-// Relaciones Product - ProductRecipe
-// ============================================
-Product.hasMany(ProductRecipe, { 
-  foreignKey: 'product_id', 
-  as: 'recipes' 
-});
-ProductRecipe.belongsTo(Product, { 
-  foreignKey: 'product_id', 
-  as: 'product' 
-});
-
-// ============================================
-// Relaciones Production
-// ============================================
-Product.hasMany(Production, { 
-  foreignKey: 'product_id', 
-  as: 'productions' 
-});
-Production.belongsTo(Product, { 
-  foreignKey: 'product_id', 
-  as: 'product' 
-});
-
-User.hasMany(Production, { 
-  foreignKey: 'user_id', 
-  as: 'productions' 
-});
-Production.belongsTo(User, { 
-  foreignKey: 'user_id', 
-  as: 'user' 
-});
+// Call associate if defined
+if (User.associate) User.associate({ Role, Permission, Invoice, Production });
+if (Role.associate) Role.associate({ User, Permission });
+if (Permission.associate) Permission.associate({ Role });
+if (Customer.associate) Customer.associate({ Invoice });
+if (Product.associate) Product.associate({ Unit, ProductUnit, InvoiceDetail, ProductRecipe, Production, Promotion });
+if (Unit.associate) Unit.associate({ Product, ProductUnit, InvoiceDetail });
+if (ProductUnit.associate) ProductUnit.associate({ Product, Unit });
+if (Invoice.associate) Invoice.associate({ Customer, User, InvoiceDetail });
+if (InvoiceDetail.associate) InvoiceDetail.associate({ Invoice, Product, Unit });
+if (AuditLog.associate) AuditLog.associate({});
+if (RawMaterial.associate) RawMaterial.associate({ ProductRecipe });
+if (ProductRecipe.associate) ProductRecipe.associate({ RawMaterial, Product });
+if (Production.associate) Production.associate({ Product, User });
+if (Promotion.associate) Promotion.associate({ Product });
 
 export default {
   User,
@@ -106,5 +42,6 @@ export default {
   AuditLog,
   RawMaterial,
   ProductRecipe,
-  Production
+  Production,
+  Promotion
 };

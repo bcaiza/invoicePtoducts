@@ -84,7 +84,7 @@ const UserList = () => {
     },
     {
       title: 'Rol',
-      dataIndex: 'Role',
+      dataIndex: 'role', // ✅ Cambiar de 'Role' a 'role'
       key: 'role',
       render: (role) => (
         role ? (
@@ -100,7 +100,7 @@ const UserList = () => {
       title: 'Permisos',
       key: 'permissions',
       render: (_, record) => {
-        const permissions = record.Role?.Permissions || [];
+        const permissions = record.role?.permissions || []; // ✅ Cambiar de Role?.Permissions a role?.permissions
         const count = permissions.length;
         
         if (count === 0) {

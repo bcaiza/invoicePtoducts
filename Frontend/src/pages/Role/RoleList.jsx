@@ -75,7 +75,7 @@ const RoleList = () => {
       title: 'Permisos',
       key: 'permissions',
       render: (_, record) => {
-        const permissions = record.Permissions || [];
+        const permissions = record.permissions || []; // ✅ Cambiar a minúscula
         const displayPermissions = permissions.slice(0, 3);
         const remaining = permissions.length - 3;
 

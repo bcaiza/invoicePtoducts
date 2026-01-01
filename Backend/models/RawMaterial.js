@@ -12,25 +12,10 @@ const RawMaterial = sequelize.define('RawMaterial', {
     allowNull: false,
     unique: true
   },
-  unit_of_measure: {
-    type: DataTypes.STRING(50),
-    allowNull: false,
-    comment: 'kg, litros, unidades, etc.'
-  },
-  stock: {
-    type: DataTypes.DECIMAL(10, 4),
-    defaultValue: 0,
-    allowNull: false
-  },
-  min_stock: {
-    type: DataTypes.DECIMAL(10, 4),
-    defaultValue: 0,
-    comment: 'Stock mínimo para alerta'
-  },
-  unit_cost: {
-    type: DataTypes.DECIMAL(10, 2),
-    defaultValue: 0,
-    comment: 'Costo por unidad'
+   description: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true
   },
   active: {
     type: DataTypes.BOOLEAN,
