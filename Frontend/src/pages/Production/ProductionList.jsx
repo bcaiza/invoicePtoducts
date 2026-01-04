@@ -58,6 +58,7 @@ const ProductionList = () => {
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [recipe, setRecipe] = useState([]);
+  const [recipeExpectedQty, setRecipeExpectedQty] = useState(null);
   
   // Modal Crear
   const [createModal, setCreateModal] = useState(false);
@@ -112,7 +113,7 @@ const ProductionList = () => {
       const data = await productionService.getStats();
       setStats(data);
     } catch (error) {
-      console.error('Error al cargar estadísticas:', error);
+      console.error('Error al obtener estadísticas:', error);
     }
   };
 
@@ -139,6 +140,7 @@ const ProductionList = () => {
     createForm.resetFields();
     setSelectedProduct(null);
     setRecipe([]);
+    setRecipeExpectedQty(null);
   };
 
   const handleProductChange = async (productId) => {
@@ -151,13 +153,21 @@ const ProductionList = () => {
       
       if (recipeData.recipes && recipeData.recipes.length > 0) {
         setRecipe(recipeData.recipes);
+        setRecipeExpectedQty(recipeData.expected_quantity);
+        
+        // Pre-llenar el formulario con la cantidad esperada de la receta
+        createForm.setFieldsValue({
+          expected_quantity: recipeData.expected_quantity || 1
+        });
       } else {
         setRecipe([]);
+        setRecipeExpectedQty(null);
         message.warning('Este producto no tiene receta configurada');
       }
     } catch (error) {
       console.error('Error al cargar receta:', error);
       setRecipe([]);
+      setRecipeExpectedQty(null);
     }
   };
 
@@ -174,6 +184,7 @@ const ProductionList = () => {
       createForm.resetFields();
       setSelectedProduct(null);
       setRecipe([]);
+      setRecipeExpectedQty(null);
       loadProductions();
       loadStats();
     } catch (error) {
@@ -580,6 +591,7 @@ const ProductionList = () => {
           createForm.resetFields();
           setSelectedProduct(null);
           setRecipe([]);
+          setRecipeExpectedQty(null);
         }}
         footer={null}
         width={700}
@@ -690,7 +702,14 @@ const ProductionList = () => {
               {recipe.length > 0 ? (
                 <>
                   <Divider className="text-slate-600 dark:text-slate-400">
-                    Receta del Producto
+                    <Space>
+                      Receta del Producto
+                      {recipeExpectedQty && (
+                        <Tag color="purple" className="font-medium rounded-lg">
+                          Rendimiento: {parseFloat(recipeExpectedQty).toFixed(2)} unidades
+                        </Tag>
+                      )}
+                    </Space>
                   </Divider>
                   <Table
                     columns={recipeColumns}
@@ -728,6 +747,7 @@ const ProductionList = () => {
                 createForm.resetFields();
                 setSelectedProduct(null);
                 setRecipe([]);
+                setRecipeExpectedQty(null);
               }}
               className="rounded-lg"
             >

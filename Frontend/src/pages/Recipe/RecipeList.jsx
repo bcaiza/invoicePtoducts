@@ -58,12 +58,14 @@ const RecipeList = () => {
             const recipeData = await recipeService.getProductRecipe(product.id);
             return {
               ...product,
-              recipeCount: recipeData.recipes?.length || 0
+              recipeCount: recipeData.recipes?.length || 0,
+              expectedQuantity: recipeData.expected_quantity || null
             };
           } catch (error) {
             return {
               ...product,
-              recipeCount: 0
+              recipeCount: 0,
+              expectedQuantity: null
             };
           }
         })
@@ -129,6 +131,24 @@ const RecipeList = () => {
             {count} {count === 1 ? 'ingrediente' : 'ingredientes'}
           </Tag>
         </Space>
+      )
+    },
+    {
+      title: 'Productos Esperados',
+      dataIndex: 'expectedQuantity',
+      key: 'expectedQuantity',
+      width: 160,
+      align: 'center',
+      render: (quantity) => (
+        quantity ? (
+          <Tag color="purple" className="font-medium rounded-lg">
+            {quantity} {quantity === 1 ? 'unidad' : 'unidades'}
+          </Tag>
+        ) : (
+          <Tag color="default" className="rounded-lg">
+            Sin definir
+          </Tag>
+        )
       )
     },
     {

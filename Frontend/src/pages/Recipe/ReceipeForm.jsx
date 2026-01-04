@@ -14,7 +14,8 @@ import {
   Col,
   Divider,
   Alert,
-  Tag
+  Tag,
+  InputNumber
 } from 'antd';
 import {
   PlusOutlined,
@@ -40,6 +41,7 @@ const RecipeForm = () => {
   const [ingredients, setIngredients] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState(null);
+  const [expectedQuantity, setExpectedQuantity] = useState(1);
 
   useEffect(() => {
     loadProduct();
@@ -78,6 +80,10 @@ const RecipeForm = () => {
             rawMaterial: r.rawMaterial
           }))
         );
+        // Cargar la cantidad esperada si existe
+        if (data.expected_quantity) {
+          setExpectedQuantity(data.expected_quantity);
+        }
       }
     } catch (error) {
       console.error('Error al cargar receta:', error);
@@ -183,6 +189,11 @@ const RecipeForm = () => {
       return;
     }
 
+    if (!expectedQuantity || expectedQuantity <= 0) {
+      message.warning('La cantidad esperada debe ser mayor a 0');
+      return;
+    }
+
     Modal.confirm({
       title: '¿Guardar receta?',
       icon: <ExclamationCircleOutlined />,
@@ -194,6 +205,7 @@ const RecipeForm = () => {
           setLoading(true);
           await recipeService.saveRecipe({
             product_id: productId,
+            expected_quantity: expectedQuantity,
             materials: ingredients.map((i) => ({
               raw_material_id: i.raw_material_id,
               notes: i.notes
@@ -292,7 +304,7 @@ const RecipeForm = () => {
 
         {/* Estadísticas */}
         <Row gutter={16} className="mb-6">
-          <Col xs={24} sm={12} md={8}>
+          <Col xs={24} sm={12} md={6}>
             <Card className="rounded-xl border-slate-200 dark:border-dark-700 dark:bg-dark-800">
               <Statistic
                 title={<span className="text-slate-600 dark:text-slate-400">Total de Ingredientes</span>}
@@ -302,7 +314,7 @@ const RecipeForm = () => {
               />
             </Card>
           </Col>
-          <Col xs={24} sm={12} md={8}>
+          <Col xs={24} sm={12} md={6}>
             <Card className="rounded-xl border-slate-200 dark:border-dark-700 dark:bg-dark-800">
               <Statistic
                 title={<span className="text-slate-600 dark:text-slate-400">Precio de Venta</span>}
@@ -313,7 +325,17 @@ const RecipeForm = () => {
               />
             </Card>
           </Col>
-          <Col xs={24} sm={12} md={8}>
+          <Col xs={24} sm={12} md={6}>
+            <Card className="rounded-xl border-slate-200 dark:border-dark-700 dark:bg-dark-800">
+              <Statistic
+                title={<span className="text-slate-600 dark:text-slate-400">Productos Esperados</span>}
+                value={expectedQuantity}
+                suffix="unidades"
+                valueStyle={{ color: '#722ed1' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} md={6}>
             <Card className="rounded-xl border-slate-200 dark:border-dark-700 dark:bg-dark-800">
               <Statistic
                 title={<span className="text-slate-600 dark:text-slate-400">Estado</span>}
@@ -323,6 +345,39 @@ const RecipeForm = () => {
             </Card>
           </Col>
         </Row>
+
+        {/* Campo para editar cantidad esperada */}
+        <Card className="mb-6 rounded-xl border-slate-200 dark:border-dark-700 dark:bg-dark-800">
+          <Row gutter={16} align="middle">
+            <Col xs={24} md={12}>
+              <div>
+                <h3 className="mb-2 text-base font-semibold text-slate-800 dark:text-slate-100">
+                  Cantidad de Productos Esperados
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Especifique cuántas unidades del producto se espera producir con esta receta
+                </p>
+              </div>
+            </Col>
+            <Col xs={24} md={12}>
+              <div className="flex items-center gap-3 mt-4 md:mt-0 md:justify-end">
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Cantidad:
+                </span>
+                <InputNumber
+                  min={1}
+                  max={999999}
+                  value={expectedQuantity}
+                  onChange={(value) => setExpectedQuantity(value || 1)}
+                  size="large"
+                  className="w-full md:w-48"
+                  suffix="unidades"
+                  placeholder="Ingrese cantidad"
+                />
+              </div>
+            </Col>
+          </Row>
+        </Card>
 
         {/* Alerta si no hay ingredientes */}
         {ingredients.length === 0 && (
