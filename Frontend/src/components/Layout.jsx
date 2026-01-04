@@ -39,7 +39,7 @@ const Layout = ({ children }) => {
       label: "Ventas",
       icon: ShoppingCart,
       children: [
-        { path: "/", label: "Dashboard", icon: LayoutDashboard },
+       // { path: "/", label: "Dashboard", icon: LayoutDashboard },
         {
           path: "/invoices",
           label: "Facturas",
