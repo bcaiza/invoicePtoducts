@@ -27,19 +27,18 @@ import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
 
 const Layout = ({ children }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
   const { theme, toggleTheme, isDark } = useTheme();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState({});
   const navigate = useNavigate();
   const location = useLocation();
 
-  const menuItems = [
+  const allMenuItems = [
     {
       label: "Ventas",
       icon: ShoppingCart,
       children: [
-       // { path: "/", label: "Dashboard", icon: LayoutDashboard },
         {
           path: "/invoices",
           label: "Facturas",
@@ -140,6 +139,35 @@ const Layout = ({ children }) => {
     },
   ];
 
+  // Filtrar menús según permisos del usuario
+  const filterMenuByPermissions = (menuItems) => {
+    return menuItems
+      .map(menu => {
+        if (menu.children) {
+          // Filtrar los hijos del menú
+          const allowedChildren = menu.children.filter(child => 
+            child.module ? hasPermission(child.module, 'view') : true
+          );
+          
+          // Si el menú tiene hijos permitidos, retornarlo con esos hijos
+          if (allowedChildren.length > 0) {
+            return {
+              ...menu,
+              children: allowedChildren
+            };
+          }
+          // Si no tiene hijos permitidos, no mostrar este menú
+          return null;
+        }
+        
+        // Si es un item individual (sin children), verificar permisos
+        return menu.module && hasPermission(menu.module, 'view') ? menu : null;
+      })
+      .filter(Boolean); // Eliminar elementos null
+  };
+
+  const menuItems = filterMenuByPermissions(allMenuItems);
+
   useEffect(() => {
     const activeMenu = menuItems.find(menu => 
       menu.children?.some(child => 
@@ -153,7 +181,7 @@ const Layout = ({ children }) => {
         [activeMenu.label]: true
       }));
     }
-  }, [location.pathname]);
+  }, [location.pathname, menuItems]);
 
   const toggleMenu = (menuLabel) => {
     setExpandedMenus(prev => ({
@@ -177,7 +205,7 @@ const Layout = ({ children }) => {
         }
       }
     }
-    return menuItems[0]?.children?.[0] || menuItems[0];
+    return menuItems[0]?.children?.[0] || menuItems[0] || { label: 'Dashboard' };
   };
 
   const currentMenuItem = findCurrentMenuItem();
