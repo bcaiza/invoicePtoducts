@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -166,7 +166,11 @@ const Layout = ({ children }) => {
       .filter(Boolean); // Eliminar elementos null
   };
 
-  const menuItems = filterMenuByPermissions(allMenuItems);
+  // ✅ SOLUCIÓN: Usar useMemo para memorizar menuItems
+  const menuItems = useMemo(() => {
+    return filterMenuByPermissions(allMenuItems);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPermission]);
 
   useEffect(() => {
     const activeMenu = menuItems.find(menu => 

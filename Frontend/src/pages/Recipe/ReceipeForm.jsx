@@ -44,10 +44,21 @@ const RecipeForm = () => {
   const [expectedQuantity, setExpectedQuantity] = useState(1);
 
   useEffect(() => {
-    loadProduct();
-    loadRawMaterials();
-    loadRecipe();
+    loadData();
   }, [productId]);
+
+  // Cargar todo en secuencia para evitar problemas de sincronización
+  const loadData = async () => {
+    await loadProduct();
+    await loadRawMaterials();
+  };
+
+  // Cargar materias primas y luego la receta
+  useEffect(() => {
+    if (rawMaterials.length > 0) {
+      loadRecipe();
+    }
+  }, [rawMaterials]);
 
   const loadProduct = async () => {
     try {
@@ -73,12 +84,16 @@ const RecipeForm = () => {
       const data = await recipeService.getProductRecipe(productId);
       if (data.recipes && data.recipes.length > 0) {
         setIngredients(
-          data.recipes.map((r) => ({
-            id: r.id,
-            raw_material_id: r.raw_material_id,
-            notes: r.notes,
-            rawMaterial: r.rawMaterial
-          }))
+          data.recipes.map((r) => {
+            // Buscar la materia prima en el array de rawMaterials
+            const rawMat = rawMaterials.find((rm) => rm.id === r.raw_material_id);
+            return {
+              id: r.id,
+              raw_material_id: r.raw_material_id,
+              notes: r.notes,
+              rawMaterial: rawMat || r.rawMaterial // Usar la encontrada o la que viene del servidor
+            };
+          })
         );
         // Cargar la cantidad esperada si existe
         if (data.expected_quantity) {
@@ -126,7 +141,9 @@ const RecipeForm = () => {
   };
 
   const handleUpdateIngredient = (values) => {
-    const rawMat = rawMaterials.find((rm) => rm.id === values.raw_material_id);
+    // Usar editingIngredient en lugar de values.raw_material_id
+    // porque el campo está deshabilitado y no envía su valor
+    const rawMat = rawMaterials.find((rm) => rm.id === editingIngredient);
     
     if (!rawMat) {
       message.error('Materia prima no encontrada');
@@ -229,7 +246,7 @@ const RecipeForm = () => {
       render: (_, record) => (
         <div>
           <div className="font-semibold text-slate-800 dark:text-slate-100">
-            {record.rawMaterial?.name}
+            {record.rawMaterial?.name || 'Cargando...'}
           </div>
           {record.rawMaterial?.description && (
             <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
