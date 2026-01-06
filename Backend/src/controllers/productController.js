@@ -347,6 +347,7 @@ export const toggleProductStatus = async (req, res) => {
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
+    const previousStatus = product.active;
 
     await product.update({ active: !product.active });
 
@@ -394,6 +395,7 @@ export const updateStock = async (req, res) => {
       return res.status(404).json({ message: "Product not found" });
     }
 
+    const previousStock = product.stock;
     let newStock = product.stock;
 
     switch (operation) {
@@ -420,20 +422,21 @@ export const updateStock = async (req, res) => {
 
     await product.update({ stock: newStock });
 
-    await createAuditLog({
+     await createAuditLog({
       entityType: "Product",
       entityId: id,
       action: "STOCK_UPDATE",
       userId: req.user?.id,
       userEmail: req.user?.email,
       changes: {
-        before: { stock: product.stock },
+        before: { stock: previousStock }, 
         after: { stock: newStock },
         operation,
         quantity,
       },
       req,
     });
+    
     res.json(product);
   } catch (error) {
     res.status(500).json({

@@ -1,6 +1,7 @@
-import Promotion from '../../models/Promotion.js';
-import Product from '../../models/Product.js';
-import { Op } from 'sequelize';
+import Promotion from "../../models/Promotion.js";
+import Product from "../../models/Product.js";
+import { Op } from "sequelize";
+import { createAuditLog } from "../utils/auditHelper.js";
 
 export const getPromotions = async (req, res) => {
   try {
@@ -9,14 +10,14 @@ export const getPromotions = async (req, res) => {
       limit = 10,
       product_id,
       active,
-      promotion_type
+      promotion_type,
     } = req.query;
 
     const offset = (page - 1) * limit;
     const where = {};
 
     if (product_id) where.product_id = product_id;
-    if (active !== undefined) where.active = active === 'true';
+    if (active !== undefined) where.active = active === "true";
     if (promotion_type) where.promotion_type = promotion_type;
 
     const { count, rows } = await Promotion.findAndCountAll({
@@ -24,13 +25,13 @@ export const getPromotions = async (req, res) => {
       include: [
         {
           model: Product,
-          as: 'product',
-          attributes: ['id', 'name', 'pvp']
-        }
+          as: "product",
+          attributes: ["id", "name", "pvp"],
+        },
       ],
       limit: parseInt(limit),
       offset: parseInt(offset),
-      order: [['created_at', 'DESC']]
+      order: [["created_at", "DESC"]],
     });
 
     res.json({
@@ -40,14 +41,14 @@ export const getPromotions = async (req, res) => {
         total: count,
         page: parseInt(page),
         limit: parseInt(limit),
-        totalPages: Math.ceil(count / limit)
-      }
+        totalPages: Math.ceil(count / limit),
+      },
     });
   } catch (error) {
-    console.error('Error getting promotions:', error);
+    console.error("Error getting promotions:", error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -55,36 +56,30 @@ export const getPromotions = async (req, res) => {
 export const getActivePromotions = async (req, res) => {
   try {
     const now = new Date();
-    
+
     const promotions = await Promotion.findAll({
       where: {
         active: true,
-        [Op.or]: [
-          { start_date: null },
-          { start_date: { [Op.lte]: now } }
-        ],
-        [Op.or]: [
-          { end_date: null },
-          { end_date: { [Op.gte]: now } }
-        ]
+        [Op.or]: [{ start_date: null }, { start_date: { [Op.lte]: now } }],
+        [Op.or]: [{ end_date: null }, { end_date: { [Op.gte]: now } }],
       },
       include: [
         {
           model: Product,
-          as: 'product',
-          attributes: ['id', 'name', 'pvp']
-        }
-      ]
+          as: "product",
+          attributes: ["id", "name", "pvp"],
+        },
+      ],
     });
 
     res.json({
       success: true,
-      data: promotions
+      data: promotions,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -97,27 +92,27 @@ export const getPromotionById = async (req, res) => {
       include: [
         {
           model: Product,
-          as: 'product',
-          attributes: ['id', 'name', 'pvp']
-        }
-      ]
+          as: "product",
+          attributes: ["id", "name", "pvp"],
+        },
+      ],
     });
 
     if (!promotion) {
       return res.status(404).json({
         success: false,
-        message: 'Promoción no encontrada'
+        message: "Promoción no encontrada",
       });
     }
 
     res.json({
       success: true,
-      data: promotion
+      data: promotion,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -136,14 +131,14 @@ export const createPromotion = async (req, res) => {
       min_quantity,
       start_date,
       end_date,
-      active
+      active,
     } = req.body;
 
     const product = await Product.findByPk(product_id);
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: 'Producto no encontrado'
+        message: "Producto no encontrado",
       });
     }
 
@@ -159,28 +154,36 @@ export const createPromotion = async (req, res) => {
       min_quantity,
       start_date,
       end_date,
-      active: active !== undefined ? active : true
+      active: active !== undefined ? active : true,
     });
 
     const createdPromotion = await Promotion.findByPk(promotion.id, {
       include: [
         {
           model: Product,
-          as: 'product',
-          attributes: ['id', 'name', 'pvp']
-        }
-      ]
+          as: "product",
+          attributes: ["id", "name", "pvp"],
+        },
+      ],
     });
-
+    await createAuditLog({
+      entityType: "Promotion",
+      entityId: promotion.id,
+      action: "CREATE",
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      changes: { after: createdPromotion.toJSON() },
+      req,
+    });
     res.status(201).json({
       success: true,
-      message: 'Promoción creada exitosamente',
-      data: createdPromotion
+      message: "Promoción creada exitosamente",
+      data: createdPromotion,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -195,9 +198,10 @@ export const updatePromotion = async (req, res) => {
     if (!promotion) {
       return res.status(404).json({
         success: false,
-        message: 'Promoción no encontrada'
+        message: "Promoción no encontrada",
       });
     }
+    const beforeUpdate = promotion.toJSON();
 
     await promotion.update(updateData);
 
@@ -205,21 +209,30 @@ export const updatePromotion = async (req, res) => {
       include: [
         {
           model: Product,
-          as: 'product',
-          attributes: ['id', 'name', 'pvp']
-        }
-      ]
+          as: "product",
+          attributes: ["id", "name", "pvp"],
+        },
+      ],
+    });
+    await createAuditLog({
+      entityType: "Promotion",
+      entityId: id,
+      action: "UPDATE",
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      changes: { before: beforeUpdate, after: updatedPromotion.toJSON() },
+      req,
     });
 
     res.json({
       success: true,
-      message: 'Promoción actualizada exitosamente',
-      data: updatedPromotion
+      message: "Promoción actualizada exitosamente",
+      data: updatedPromotion,
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -233,20 +246,29 @@ export const deletePromotion = async (req, res) => {
     if (!promotion) {
       return res.status(404).json({
         success: false,
-        message: 'Promoción no encontrada'
+        message: "Promoción no encontrada",
       });
     }
+    const beforeDelete = promotion.toJSON();
 
     await promotion.destroy();
-
+    await createAuditLog({
+      entityType: "Promotion",
+      entityId: id,
+      action: "DELETE",
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      changes: { before: beforeDelete },
+      req,
+    });
     res.json({
       success: true,
-      message: 'Promoción eliminada exitosamente'
+      message: "Promoción eliminada exitosamente",
     });
   } catch (error) {
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message,
     });
   }
 };

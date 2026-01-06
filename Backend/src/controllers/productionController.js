@@ -1,8 +1,9 @@
-import Production from '../../models/Production.js';
-import Product from '../../models/Product.js';
-import RawMaterial from '../../models/RawMaterial.js';
-import Recipe from '../../models/ProductRecipe.js';
-import sequelize from '../config/database.js';
+import Production from "../../models/Production.js";
+import Product from "../../models/Product.js";
+import RawMaterial from "../../models/RawMaterial.js";
+import Recipe from "../../models/ProductRecipe.js";
+import sequelize from "../config/database.js";
+import { createAuditLog } from "../utils/auditHelper.js";
 
 // Crear nueva producción
 export const createProduction = async (req, res) => {
@@ -11,14 +12,14 @@ export const createProduction = async (req, res) => {
 
     if (!product_id || !expected_quantity || expected_quantity <= 0) {
       return res.status(400).json({
-        message: 'Debe proporcionar product_id y expected_quantity válida'
+        message: "Debe proporcionar product_id y expected_quantity válida",
       });
     }
 
     // Verificar que el producto existe
     const product = await Product.findByPk(product_id);
     if (!product) {
-      return res.status(404).json({ message: 'Producto no encontrado' });
+      return res.status(404).json({ message: "Producto no encontrado" });
     }
 
     // Verificar que el producto tiene receta
@@ -27,15 +28,16 @@ export const createProduction = async (req, res) => {
       include: [
         {
           model: RawMaterial,
-          as: 'rawMaterial',
-          attributes: ['id', 'name', 'description']
-        }
-      ]
+          as: "rawMaterial",
+          attributes: ["id", "name", "description"],
+        },
+      ],
     });
 
     if (recipe.length === 0) {
       return res.status(400).json({
-        message: 'Este producto no tiene receta configurada. Configure una receta antes de producir.'
+        message:
+          "Este producto no tiene receta configurada. Configure una receta antes de producir.",
       });
     }
 
@@ -46,8 +48,8 @@ export const createProduction = async (req, res) => {
       produced_quantity: null,
       user_id: user_id || null,
       notes: notes || null,
-      status: 'in_process',
-      production_date: new Date()
+      status: "in_process",
+      production_date: new Date(),
     });
 
     // Obtener producción con datos del producto
@@ -55,21 +57,29 @@ export const createProduction = async (req, res) => {
       include: [
         {
           model: Product,
-          as: 'product',
-          attributes: ['id', 'name', 'pvp', 'stock']
-        }
-      ]
+          as: "product",
+          attributes: ["id", "name", "pvp", "stock"],
+        },
+      ],
     });
-
+    await createAuditLog({
+      entityType: "Production",
+      entityId: production.id,
+      action: "CREATE",
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      changes: { after: createdProduction.toJSON() },
+      req,
+    });
     res.status(201).json({
-      message: 'Producción creada correctamente',
-      production: createdProduction
+      message: "Producción creada correctamente",
+      production: createdProduction,
     });
   } catch (error) {
-    console.error('Error al crear producción:', error);
+    console.error("Error al crear producción:", error);
     res.status(500).json({
-      message: 'Error al crear producción',
-      error: error.message
+      message: "Error al crear producción",
+      error: error.message,
     });
   }
 };
@@ -85,7 +95,7 @@ export const completeProduction = async (req, res) => {
     if (!produced_quantity || produced_quantity <= 0) {
       await transaction.rollback();
       return res.status(400).json({
-        message: 'Debe proporcionar produced_quantity válida mayor a 0'
+        message: "Debe proporcionar produced_quantity válida mayor a 0",
       });
     }
 
@@ -94,27 +104,27 @@ export const completeProduction = async (req, res) => {
       include: [
         {
           model: Product,
-          as: 'product'
-        }
-      ]
+          as: "product",
+        },
+      ],
     });
 
     if (!production) {
       await transaction.rollback();
-      return res.status(404).json({ message: 'Producción no encontrada' });
+      return res.status(404).json({ message: "Producción no encontrada" });
     }
 
-    if (production.status === 'completed') {
+    if (production.status === "completed") {
       await transaction.rollback();
       return res.status(400).json({
-        message: 'Esta producción ya fue finalizada'
+        message: "Esta producción ya fue finalizada",
       });
     }
 
-    if (production.status === 'cancelled') {
+    if (production.status === "cancelled") {
       await transaction.rollback();
       return res.status(400).json({
-        message: 'No se puede completar una producción cancelada'
+        message: "No se puede completar una producción cancelada",
       });
     }
 
@@ -122,18 +132,37 @@ export const completeProduction = async (req, res) => {
     const product = await Product.findByPk(production.product_id);
     const currentProductStock = parseFloat(product.stock || 0);
     const newProductStock = currentProductStock + parseFloat(produced_quantity);
-    
+
     await product.update({ stock: newProductStock }, { transaction });
 
     // Actualizar la producción
     await production.update(
       {
         produced_quantity,
-        status: 'completed',
-        completed_date: new Date()
+        status: "completed",
+        completed_date: new Date(),
       },
       { transaction }
     );
+
+    await createAuditLog({
+      entityType: "Production",
+      entityId: productionId,
+      action: "STATUS_CHANGE",
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      changes: {
+        before: {
+          status: "in_process",
+          produced_quantity: null,
+        },
+        after: {
+          status: "completed",
+          produced_quantity: parseFloat(produced_quantity),
+        },
+      },
+      req,
+    });
 
     await transaction.commit();
 
@@ -142,29 +171,29 @@ export const completeProduction = async (req, res) => {
       include: [
         {
           model: Product,
-          as: 'product'
-        }
-      ]
+          as: "product",
+        },
+      ],
     });
 
     res.json({
-      message: 'Producción finalizada correctamente. Stock actualizado.',
+      message: "Producción finalizada correctamente. Stock actualizado.",
       production: updatedProduction,
       stock_update: {
         product_name: product.name,
         stock_before: currentProductStock,
         stock_after: newProductStock,
-        produced: parseFloat(produced_quantity)
-      }
+        produced: parseFloat(produced_quantity),
+      },
     });
   } catch (error) {
-    if (transaction.finished !== 'commit') {
+    if (transaction.finished !== "commit") {
       await transaction.rollback();
     }
-    console.error('Error al finalizar producción:', error);
+    console.error("Error al finalizar producción:", error);
     res.status(500).json({
-      message: 'Error al finalizar producción',
-      error: error.message
+      message: "Error al finalizar producción",
+      error: error.message,
     });
   }
 };
@@ -184,13 +213,13 @@ export const getProductions = async (req, res) => {
       include: [
         {
           model: Product,
-          as: 'product',
-          attributes: ['id', 'name', 'pvp', 'stock']
-        }
+          as: "product",
+          attributes: ["id", "name", "pvp", "stock"],
+        },
       ],
       limit: parseInt(limit),
       offset: parseInt(offset),
-      order: [['production_date', 'DESC']]
+      order: [["production_date", "DESC"]],
     });
 
     res.json({
@@ -199,14 +228,14 @@ export const getProductions = async (req, res) => {
         total: count,
         per_page: parseInt(limit),
         current_page: parseInt(page),
-        last_page: Math.ceil(count / limit)
-      }
+        last_page: Math.ceil(count / limit),
+      },
     });
   } catch (error) {
-    console.error('Error al obtener producciones:', error);
+    console.error("Error al obtener producciones:", error);
     res.status(500).json({
-      message: 'Error al obtener producciones',
-      error: error.message
+      message: "Error al obtener producciones",
+      error: error.message,
     });
   }
 };
@@ -220,13 +249,13 @@ export const getProductionById = async (req, res) => {
       include: [
         {
           model: Product,
-          as: 'product'
-        }
-      ]
+          as: "product",
+        },
+      ],
     });
 
     if (!production) {
-      return res.status(404).json({ message: 'Producción no encontrada' });
+      return res.status(404).json({ message: "Producción no encontrada" });
     }
 
     // Mostrar la receta actual del producto
@@ -235,26 +264,26 @@ export const getProductionById = async (req, res) => {
       include: [
         {
           model: RawMaterial,
-          as: 'rawMaterial',
-          attributes: ['id', 'name', 'description']
-        }
-      ]
+          as: "rawMaterial",
+          attributes: ["id", "name", "description"],
+        },
+      ],
     });
 
     res.json({
       production,
-      recipe: recipe.map(r => ({
+      recipe: recipe.map((r) => ({
         raw_material_id: r.raw_material_id,
         name: r.rawMaterial.name,
         description: r.rawMaterial.description,
-        notes: r.notes
-      }))
+        notes: r.notes,
+      })),
     });
   } catch (error) {
-    console.error('Error al obtener producción:', error);
+    console.error("Error al obtener producción:", error);
     res.status(500).json({
-      message: 'Error al obtener producción',
-      error: error.message
+      message: "Error al obtener producción",
+      error: error.message,
     });
   }
 };
@@ -267,32 +296,44 @@ export const cancelProduction = async (req, res) => {
     const production = await Production.findByPk(productionId);
 
     if (!production) {
-      return res.status(404).json({ message: 'Producción no encontrada' });
+      return res.status(404).json({ message: "Producción no encontrada" });
     }
 
-    if (production.status === 'completed') {
+    if (production.status === "completed") {
       return res.status(400).json({
-        message: 'No se puede cancelar una producción ya finalizada'
+        message: "No se puede cancelar una producción ya finalizada",
       });
     }
 
-    if (production.status === 'cancelled') {
+    if (production.status === "cancelled") {
       return res.status(400).json({
-        message: 'Esta producción ya está cancelada'
+        message: "Esta producción ya está cancelada",
       });
     }
+    const previousStatus = production.status;
 
-    await production.update({ status: 'cancelled' });
-
+    await production.update({ status: "cancelled" });
+    await createAuditLog({
+      entityType: "Production",
+      entityId: productionId,
+      action: "STATUS_CHANGE",
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      changes: {
+        before: { status: previousStatus },
+        after: { status: "cancelled" },
+      },
+      req,
+    });
     res.json({
-      message: 'Producción cancelada correctamente',
-      production
+      message: "Producción cancelada correctamente",
+      production,
     });
   } catch (error) {
-    console.error('Error al cancelar producción:', error);
+    console.error("Error al cancelar producción:", error);
     res.status(500).json({
-      message: 'Error al cancelar producción',
-      error: error.message
+      message: "Error al cancelar producción",
+      error: error.message,
     });
   }
 };
@@ -306,20 +347,20 @@ export const updateProduction = async (req, res) => {
     const production = await Production.findByPk(productionId);
 
     if (!production) {
-      return res.status(404).json({ message: 'Producción no encontrada' });
+      return res.status(404).json({ message: "Producción no encontrada" });
     }
 
-    if (production.status !== 'in_process') {
+    if (production.status !== "in_process") {
       return res.status(400).json({
-        message: 'Solo se pueden editar producciones en proceso'
+        message: "Solo se pueden editar producciones en proceso",
       });
     }
-
+    const beforeUpdate = production.toJSON();
     const updates = {};
     if (expected_quantity !== undefined) {
       if (expected_quantity <= 0) {
         return res.status(400).json({
-          message: 'La cantidad esperada debe ser mayor a 0'
+          message: "La cantidad esperada debe ser mayor a 0",
         });
       }
       updates.expected_quantity = expected_quantity;
@@ -332,20 +373,29 @@ export const updateProduction = async (req, res) => {
       include: [
         {
           model: Product,
-          as: 'product'
-        }
-      ]
+          as: "product",
+        },
+      ],
+    });
+    await createAuditLog({
+      entityType: "Production",
+      entityId: productionId,
+      action: "UPDATE",
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      changes: { before: beforeUpdate, after: updatedProduction.toJSON() },
+      req,
     });
 
     res.json({
-      message: 'Producción actualizada correctamente',
-      production: updatedProduction
+      message: "Producción actualizada correctamente",
+      production: updatedProduction,
     });
   } catch (error) {
-    console.error('Error al actualizar producción:', error);
+    console.error("Error al actualizar producción:", error);
     res.status(500).json({
-      message: 'Error al actualizar producción',
-      error: error.message
+      message: "Error al actualizar producción",
+      error: error.message,
     });
   }
 };
@@ -358,23 +408,32 @@ export const deleteProduction = async (req, res) => {
     const production = await Production.findByPk(productionId);
 
     if (!production) {
-      return res.status(404).json({ message: 'Producción no encontrada' });
+      return res.status(404).json({ message: "Producción no encontrada" });
     }
 
-    if (production.status === 'completed') {
+    if (production.status === "completed") {
       return res.status(400).json({
-        message: 'No se puede eliminar una producción finalizada'
+        message: "No se puede eliminar una producción finalizada",
       });
     }
+    const beforeDelete = production.toJSON();
 
     await production.destroy();
-
-    res.json({ message: 'Producción eliminada correctamente' });
+    await createAuditLog({
+      entityType: "Production",
+      entityId: productionId,
+      action: "DELETE",
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      changes: { before: beforeDelete },
+      req,
+    });
+    res.json({ message: "Producción eliminada correctamente" });
   } catch (error) {
-    console.error('Error al eliminar producción:', error);
+    console.error("Error al eliminar producción:", error);
     res.status(500).json({
-      message: 'Error al eliminar producción',
-      error: error.message
+      message: "Error al eliminar producción",
+      error: error.message,
     });
   }
 };
@@ -383,21 +442,27 @@ export const deleteProduction = async (req, res) => {
 export const getProductionStats = async (req, res) => {
   try {
     const total = await Production.count();
-    const inProcess = await Production.count({ where: { status: 'in_process' } });
-    const completed = await Production.count({ where: { status: 'completed' } });
-    const cancelled = await Production.count({ where: { status: 'cancelled' } });
+    const inProcess = await Production.count({
+      where: { status: "in_process" },
+    });
+    const completed = await Production.count({
+      where: { status: "completed" },
+    });
+    const cancelled = await Production.count({
+      where: { status: "cancelled" },
+    });
 
     res.json({
       total,
       in_process: inProcess,
       completed,
-      cancelled
+      cancelled,
     });
   } catch (error) {
-    console.error('Error al obtener estadísticas:', error);
+    console.error("Error al obtener estadísticas:", error);
     res.status(500).json({
-      message: 'Error al obtener estadísticas',
-      error: error.message
+      message: "Error al obtener estadísticas",
+      error: error.message,
     });
   }
 };
@@ -410,5 +475,5 @@ export default {
   cancelProduction,
   updateProduction,
   deleteProduction,
-  getProductionStats
+  getProductionStats,
 };

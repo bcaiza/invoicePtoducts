@@ -2,6 +2,7 @@ import Recipe from "../../models/ProductRecipe.js";
 import Product from "../../models/Product.js";
 import RawMaterial from "../../models/RawMaterial.js";
 import sequelize from "../config/database.js";
+import { createAuditLog } from "../utils/auditHelper.js";
 
 export const getProductRecipe = async (req, res) => {
   try {
@@ -116,6 +117,22 @@ export const saveRecipe = async (req, res) => {
       { transaction }
     );
 
+    await createAuditLog({
+      entityType: "Recipe",
+      entityId: product_id,
+      action: "UPDATE",
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      changes: {
+        after: {
+          product_id,
+          materials_count: materials.length,
+          expected_quantity,
+        },
+      },
+      req,
+    });
+
     await transaction.commit();
 
     const savedRecipes = await Recipe.findAll({
@@ -198,6 +215,15 @@ export const addRawMaterialToRecipe = async (req, res) => {
         },
       ],
     });
+    await createAuditLog({
+      entityType: "Recipe",
+      entityId: recipe.id,
+      action: "CREATE",
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      changes: { after: recipeWithMaterial.toJSON() },
+      req,
+    });
 
     res.status(201).json({
       message: "Materia prima agregada a la receta",
@@ -230,6 +256,7 @@ export const updateRecipeNotes = async (req, res) => {
         message: "Ingrediente no encontrado en la receta",
       });
     }
+    const beforeUpdate = { notes: recipe.notes };
 
     recipe.notes = notes || null;
     await recipe.save();
@@ -242,6 +269,15 @@ export const updateRecipeNotes = async (req, res) => {
           attributes: ["id", "name", "description"],
         },
       ],
+    });
+    await createAuditLog({
+      entityType: "Recipe",
+      entityId: recipeId,
+      action: "UPDATE",
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      changes: { before: beforeUpdate, after: { notes: recipe.notes } },
+      req,
     });
 
     res.json({
@@ -265,6 +301,7 @@ export const updateRecipeNotes = async (req, res) => {
 export const removeRawMaterialFromRecipe = async (req, res) => {
   try {
     const { productId, rawMaterialId } = req.params;
+    const beforeDelete = recipe.toJSON();
 
     const deleted = await Recipe.destroy({
       where: {
@@ -278,6 +315,15 @@ export const removeRawMaterialFromRecipe = async (req, res) => {
         message: "Materia prima no encontrada en la receta",
       });
     }
+    await createAuditLog({
+      entityType: "Recipe",
+      entityId: recipe.id,
+      action: "DELETE",
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      changes: { before: beforeDelete },
+      req,
+    });
 
     res.json({
       message: "Materia prima eliminada de la receta",
@@ -352,6 +398,10 @@ export const getAllRecipes = async (req, res) => {
 export const deleteRecipe = async (req, res) => {
   try {
     const { productId } = req.params;
+    const recipes = await Recipe.findAll({
+      where: { product_id: productId },
+    });
+    const beforeDelete = recipes.map((r) => r.toJSON());
 
     const deleted = await Recipe.destroy({
       where: { product_id: productId },
@@ -362,7 +412,20 @@ export const deleteRecipe = async (req, res) => {
         message: "No se encontró receta para este producto",
       });
     }
-
+    await createAuditLog({
+      entityType: "Recipe",
+      entityId: productId,
+      action: "DELETE",
+      userId: req.user?.id,
+      userEmail: req.user?.email,
+      changes: {
+        before: {
+          product_id: productId,
+          materials_count: beforeDelete.length,
+        },
+      },
+      req,
+    });
     res.json({
       message: "Receta eliminada correctamente",
       deleted_count: deleted,
