@@ -12,10 +12,10 @@ const RawMaterial = sequelize.define('RawMaterial', {
     allowNull: false,
     unique: true
   },
-   description: {
+  description: {
     type: DataTypes.STRING,
     allowNull: true,
-    unique: true
+    unique: false 
   },
   active: {
     type: DataTypes.BOOLEAN,
@@ -27,8 +27,7 @@ const RawMaterial = sequelize.define('RawMaterial', {
 });
 
 RawMaterial.associate = (models) => {
-  RawMaterial.hasMany(models.ProductRecipe, { 
-    foreignKey: 'raw_material_id', 
+  RawMaterial.hasMany(models.ProductRecipe, {  
     as: 'recipes' 
   });
 };

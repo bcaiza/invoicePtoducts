@@ -26,12 +26,14 @@ import {
   ExclamationCircleOutlined,
   EditOutlined,
   InfoCircleOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import { Package, AlertCircle, CheckCircle2, Clock } from "lucide-react";
 import productionService from "../../services/productionService";
 import productService from "../../services/productService";
 import recipeService from "../../services/recipeService";
 import moment from "moment";
+import * as XLSX from "xlsx";
 
 const { Search } = Input;
 const { TextArea } = Input;
@@ -52,25 +54,21 @@ const ProductionList = () => {
     cancelled: 0,
   });
 
-  // Productos para el modal de crear
   const [products, setProducts] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [recipe, setRecipe] = useState([]);
   const [recipeExpectedQty, setRecipeExpectedQty] = useState(null);
 
-  // Modal Crear
   const [createModal, setCreateModal] = useState(false);
   const [createForm] = Form.useForm();
 
-  // Modal Editar
   const [editModal, setEditModal] = useState({
     visible: false,
     production: null,
   });
   const [editForm] = Form.useForm();
 
-  // Modal Completar
   const [completeModal, setCompleteModal] = useState({
     visible: false,
     production: null,
@@ -135,7 +133,62 @@ const ProductionList = () => {
     loadProductions(newPagination.current, newPagination.pageSize);
   };
 
-  // ==================== MODAL CREAR ====================
+  const exportToExcel = async () => {
+    try {
+      message.loading("Generando archivo Excel...", 0);
+
+      const allData = await productionService.getProductions({
+        page: 1,
+        limit: 10000,
+        status: statusFilter || undefined,
+      });
+
+      const statusMap = {
+        in_process: "En Proceso",
+        completed: "Finalizado",
+        cancelled: "Cancelado",
+      };
+
+      const excelData = allData.data.map((prod) => ({
+        Producto: prod.product?.name || "",
+        "Cantidad Esperada": parseFloat(prod.expected_quantity).toFixed(2),
+        "Cantidad Producida": prod.produced_quantity
+          ? parseFloat(prod.produced_quantity).toFixed(2)
+          : "Pendiente",
+        Estado: statusMap[prod.status] || prod.status,
+        Fecha: moment(prod.production_date).format("DD/MM/YYYY HH:mm"),
+        Notas: prod.notes || "",
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(excelData);
+      
+      const columnWidths = [
+        { wch: 30 },
+        { wch: 18 },
+        { wch: 18 },
+        { wch: 15 },
+        { wch: 18 },
+        { wch: 40 },
+      ];
+      worksheet["!cols"] = columnWidths;
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Producciones");
+
+      XLSX.writeFile(
+        workbook,
+        `producciones_${moment().format("YYYYMMDD_HHmmss")}.xlsx`
+      );
+
+      message.destroy();
+      message.success("Archivo Excel exportado correctamente");
+    } catch (error) {
+      message.destroy();
+      message.error("Error al exportar datos");
+      console.error(error);
+    }
+  };
+
   const showCreateModal = () => {
     setCreateModal(true);
     loadProducts();
@@ -150,14 +203,12 @@ const ProductionList = () => {
       const product = products.find((p) => p.id === productId);
       setSelectedProduct(product);
 
-      // Cargar receta del producto
       const recipeData = await recipeService.getProductRecipe(productId);
-
+      console.log("Receta cargada:", recipeData);
       if (recipeData.recipes && recipeData.recipes.length > 0) {
         setRecipe(recipeData.recipes);
         setRecipeExpectedQty(recipeData.expected_quantity);
 
-        // Pre-llenar el formulario con la cantidad esperada de la receta
         createForm.setFieldsValue({
           expected_quantity: recipeData.expected_quantity || 1,
         });
@@ -204,7 +255,7 @@ const ProductionList = () => {
       production,
     });
     editForm.setFieldsValue({
-      expected_quantity: parseFloat(production.expected_quantity), 
+      expected_quantity: parseFloat(production.expected_quantity),
       notes: production.notes,
     });
   };
@@ -224,14 +275,15 @@ const ProductionList = () => {
   };
 
   const showCompleteModal = (production) => {
-  setCompleteModal({
-    visible: true,
-    production,
-  });
-  completeForm.setFieldsValue({
-    produced_quantity: parseFloat(production.expected_quantity), 
-  });
-};
+    setCompleteModal({
+      visible: true,
+      production,
+    });
+    completeForm.setFieldsValue({
+      produced_quantity: parseFloat(production.expected_quantity),
+    });
+  };
+
   const handleComplete = async (values) => {
     try {
       await productionService.completeProduction(
@@ -252,7 +304,6 @@ const ProductionList = () => {
     }
   };
 
-  // ==================== CANCELAR ====================
   const handleCancel = (productionId) => {
     Modal.confirm({
       title: "¿Cancelar producción?",
@@ -274,7 +325,6 @@ const ProductionList = () => {
     });
   };
 
-  // ==================== ELIMINAR ====================
   const handleDelete = (productionId) => {
     Modal.confirm({
       title: "¿Eliminar producción?",
@@ -451,32 +501,36 @@ const ProductionList = () => {
   const recipeColumns = [
     {
       title: "Materia Prima",
-      dataIndex: "notes",
-      key: "name",
-      render: (text, record) => (
+      key: "rawMaterial",
+      render: (_, record) => (
         <div>
-          <div className="text-sm font-semibold">{text}</div>
+          <div className="text-sm font-semibold text-slate-800 dark:text-slate-100">
+            {record.rawMaterial?.name || "Sin nombre"}
+          </div>
           {record.rawMaterial?.description && (
-            <div className="text-xs text-slate-500">
-              {record.rawMaterial.name}
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              {record.rawMaterial.description}
             </div>
           )}
         </div>
       ),
     },
     {
-      title: "Notas",
+      title: "Cantidad",
       dataIndex: "notes",
-      key: "notes",
+      key: "quantity",
+      width: 120,
+      align: "center",
       render: (notes) => (
-        <span className="text-xs text-slate-600">{notes || "-"}</span>
+        <Tag color="blue" className="font-medium rounded-lg">
+          {notes || "N/A"}
+        </Tag>
       ),
     },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Estadísticas */}
       <Row gutter={16}>
         <Col xs={24} sm={12} md={6}>
           <Card className="rounded-xl border-slate-200 dark:border-dark-800 dark:bg-dark-900">
@@ -536,10 +590,9 @@ const ProductionList = () => {
         </Col>
       </Row>
 
-      {/* Filtros y acciones */}
       <Card className="rounded-xl border-slate-200 dark:border-dark-800 dark:bg-dark-900">
         <Row gutter={16} align="middle">
-          <Col xs={24} sm={12} md={16}>
+          <Col xs={24} sm={12} md={12}>
             <Space className="w-full" direction="vertical">
               <span className="text-sm text-slate-600 dark:text-slate-400">
                 Filtrar por estado:
@@ -574,21 +627,30 @@ const ProductionList = () => {
               </Space.Compact>
             </Space>
           </Col>
-          <Col xs={24} sm={12} md={8} className="mt-4 sm:mt-0">
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              size="large"
-              className="w-full rounded-lg"
-              onClick={showCreateModal}
-            >
-              Nueva Producción
-            </Button>
+          <Col xs={24} sm={12} md={12} className="mt-4 sm:mt-0">
+            <Space className="w-full" direction="horizontal" size="middle">
+              <Button
+                icon={<DownloadOutlined />}
+                size="large"
+                className="rounded-lg"
+                onClick={exportToExcel}
+              >
+                Exportar Excel
+              </Button>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                size="large"
+                className="rounded-lg"
+                onClick={showCreateModal}
+              >
+                Nueva Producción
+              </Button>
+            </Space>
           </Col>
         </Row>
       </Card>
 
-      {/* Tabla */}
       <Card className="rounded-xl border-slate-200 dark:border-dark-800 dark:bg-dark-900">
         <Table
           columns={columns}
@@ -607,7 +669,6 @@ const ProductionList = () => {
         />
       </Card>
 
-      {/* ==================== MODAL CREAR PRODUCCIÓN ==================== */}
       <Modal
         title="Nueva Producción"
         open={createModal}
@@ -703,7 +764,6 @@ const ProductionList = () => {
             />
           </Form.Item>
 
-          {/* Información del producto seleccionado */}
           {selectedProduct && (
             <>
               <Divider className="text-slate-600 dark:text-slate-400">
@@ -741,7 +801,6 @@ const ProductionList = () => {
                 </Space>
               </div>
 
-              {/* Receta */}
               {recipe.length > 0 ? (
                 <>
                   <Divider className="text-slate-600 dark:text-slate-400">
@@ -810,7 +869,6 @@ const ProductionList = () => {
         </Form>
       </Modal>
 
-      {/* ==================== MODAL EDITAR PRODUCCIÓN ==================== */}
       <Modal
         title="Editar Producción"
         open={editModal.visible}
@@ -894,7 +952,6 @@ const ProductionList = () => {
         )}
       </Modal>
 
-      {/* ==================== MODAL FINALIZAR PRODUCCIÓN ==================== */}
       <Modal
         title="Finalizar Producción"
         open={completeModal.visible}

@@ -31,7 +31,7 @@ import AuditLogList from './pages/AuditLog/AuditLogList';
 import RawMaterialList from './pages/RawMaterial/RawMaterialList';
 import RawMaterialForm from './pages/RawMaterial/RawMaterialForm';
 import ProductionList from './pages/Production/ProductionList';
-import ProductionCreate from './pages/Production/ProductionCreate';
+//import ProductionCreate from './pages/Production/ProductionCreate';
 import ReportsPage from './pages/Report/ReportPage';
 import RecipeList from './pages/Recipe/RecipeList';
 import RecipeForm from './pages/Recipe/ReceipeForm';
@@ -295,16 +295,19 @@ function AppRoutes() {
           }
         />
 
-        <Route
-          path="/productions/new"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <ProductionCreate />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
+      {/*
+<Route
+  path="/productions/new"
+  element={
+    <ProtectedRoute>
+      <Layout>
+        <ProductionCreate />
+      </Layout>
+    </ProtectedRoute>
+  }
+/>
+*/}
+
         <Route
           path="/promotions"
           element={

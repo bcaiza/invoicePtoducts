@@ -1,4 +1,4 @@
-import Recipe from "../../models/ProductRecipe.js";
+import Recipe from "../../models/Recipe.js";
 import Product from "../../models/Product.js";
 import RawMaterial from "../../models/RawMaterial.js";
 import sequelize from "../config/database.js";
@@ -36,6 +36,11 @@ export const getProductRecipe = async (req, res) => {
         id: r.id,
         raw_material_id: r.raw_material_id,
         notes: r.notes,
+        rawMaterial: r.rawMaterial ? {
+          id: r.rawMaterial.id,
+          name: r.rawMaterial.name,
+          description: r.rawMaterial.description,
+        } : null,
       })),
       count: recipes.length,
       expected_quantity: recipes[0]?.expected_quantity || null,
@@ -153,7 +158,11 @@ export const saveRecipe = async (req, res) => {
         id: r.id,
         raw_material_id: r.raw_material_id,
         notes: r.notes,
-        rawMaterial: r.rawMaterial,
+        rawMaterial: r.rawMaterial ? {
+          id: r.rawMaterial.id,
+          name: r.rawMaterial.name,
+          description: r.rawMaterial.description,
+        } : null,
       })),
       count: savedRecipes.length,
     });
@@ -232,7 +241,11 @@ export const addRawMaterialToRecipe = async (req, res) => {
         raw_material_id: recipeWithMaterial.raw_material_id,
         notes: recipeWithMaterial.notes,
         expected_quantity: recipeWithMaterial.expected_quantity,
-        rawMaterial: recipeWithMaterial.rawMaterial,
+        rawMaterial: recipeWithMaterial.rawMaterial ? {
+          id: recipeWithMaterial.rawMaterial.id,
+          name: recipeWithMaterial.rawMaterial.name,
+          description: recipeWithMaterial.rawMaterial.description,
+        } : null,
       },
     });
   } catch (error) {
@@ -286,7 +299,11 @@ export const updateRecipeNotes = async (req, res) => {
         id: updatedRecipe.id,
         raw_material_id: updatedRecipe.raw_material_id,
         notes: updatedRecipe.notes,
-        rawMaterial: updatedRecipe.rawMaterial,
+        rawMaterial: updatedRecipe.rawMaterial ? {
+          id: updatedRecipe.rawMaterial.id,
+          name: updatedRecipe.rawMaterial.name,
+          description: updatedRecipe.rawMaterial.description,
+        } : null,
       },
     });
   } catch (error) {
@@ -301,20 +318,24 @@ export const updateRecipeNotes = async (req, res) => {
 export const removeRawMaterialFromRecipe = async (req, res) => {
   try {
     const { productId, rawMaterialId } = req.params;
-    const beforeDelete = recipe.toJSON();
-
-    const deleted = await Recipe.destroy({
+    
+    const recipe = await Recipe.findOne({
       where: {
         product_id: productId,
         raw_material_id: rawMaterialId,
       },
     });
 
-    if (deleted === 0) {
+    if (!recipe) {
       return res.status(404).json({
         message: "Materia prima no encontrada en la receta",
       });
     }
+
+    const beforeDelete = recipe.toJSON();
+
+    await recipe.destroy();
+
     await createAuditLog({
       entityType: "Recipe",
       entityId: recipe.id,

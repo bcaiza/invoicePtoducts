@@ -9,11 +9,10 @@ import Invoice from './Invoice.js';
 import InvoiceDetail from './InvoiceDetail.js';
 import AuditLog from './AuditLog.js';
 import RawMaterial from './RawMaterial.js';
-import ProductRecipe from './ProductRecipe.js';
+import ProductRecipe from './Recipe.js';
 import Production from './Production.js';
 import Promotion from './Promotion.js';
 
-// Call associate if defined
 if (User.associate) User.associate({ Role, Permission, Invoice, Production });
 if (Role.associate) Role.associate({ User, Permission });
 if (Permission.associate) Permission.associate({ Role });
